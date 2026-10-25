@@ -1,0 +1,6 @@
+@AlRafaApi_HostAddress = http://localhost:5192
+
+GET {{AlRafaApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
