@@ -1,4 +1,4 @@
-const API_BASE = 'https://alrafaroastery.onrender.com/api/products';
+const API_BASE = 'https://alrafaroastery.onrender.com/api/Products';
 const AUTH_BASE = 'https://alrafaroastery.onrender.com/api/auth';
 
 // ─── Token Management ───────────────────────────────────────────────
