@@ -1,11 +1,20 @@
-FROM ://microsoft.com AS build
+
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+
 WORKDIR /src
+
 COPY *.csproj ./
 RUN dotnet restore
-COPY . .
-RUN dotnet publish -c Release -o /app
 
-FROM ://microsoft.com AS final
+COPY . .
+RUN dotnet publish -c Release -o /app/publish
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+
 WORKDIR /app
-COPY --from=build /app .
+
+COPY --from=build /app/publish .
+
 ENTRYPOINT ["dotnet", "AlRafaApi.dll"]
