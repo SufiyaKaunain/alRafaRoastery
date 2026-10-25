@@ -76,8 +76,7 @@ allowedOrigins ??= new[]
 {
     "http://localhost:5173",
     "http://localhost:3000",
-    "https://al-rafa-roastery-wine.vercel.app",
-    "https://al-rafa-roastery-30gfxlkmv-sufiya3.vercel.app"
+    "https://al-rafa-roastery-afhyb7jjp-sufiya3.vercel.app"
 };
 
 builder.Services.AddCors(options =>
