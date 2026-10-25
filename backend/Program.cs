@@ -100,12 +100,13 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
+// if (app.Environment.IsDevelopment())
+// {
+//     app.UseSwagger();
+//     app.UseSwaggerUI();
+// }
+app.UseSwagger();
+app.UseSwaggerUI();
 app.UseCors("AllowReactApp");
 app.UseAuthentication();
 app.UseAuthorization();
