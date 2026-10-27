@@ -8,30 +8,35 @@
 
 ---
 
-## 🏗️ Project Structure
+## 🏗️ Project Architecture
+
+The application is split into two independent React applications and one shared ASP.NET Core REST API:
 
 ```
 al-rafa-roastery/
-├── frontend/          # React + Vite customer storefront
-└── backend/           # ASP.NET Core 10 REST API
+├── frontend/          # Customer Storefront (Vercel Project 1: port 5173)
+├── frontend-admin/    # Admin Management Portal (Vercel Project 2: port 5174)
+└── backend/           # ASP.NET Core 10 REST API (Render / Docker)
 ```
 
 ---
 
 ## ✨ Features
 
-### Customer Storefront (`/`)
-- Product browsing with category filters and search
+### 🛍️ Customer Storefront (`frontend`)
+- Product browsing with category filters, live search, and sorting
 - Quick View modal and Shopping Cart drawer
-- WhatsApp order integration
-- About and Contact sections
-- Fully responsive design
+- WhatsApp direct order integration
+- Brand story (Our Story) & Location (Ras Al Khaimah, UAE)
+- Mobile-first responsive layout with luxury dark & gold aesthetics
 
-### Admin Dashboard (`/admin`)
-- Separate login & signup with JWT authentication
-- Sidebar layout with Home, Products, and Profile tabs
-- Full CRUD — add, edit, delete products live in PostgreSQL
-- Dashboard overview with stats (total products, stock, categories, avg price)
+### 🔐 Admin Portal (`frontend-admin`)
+- Independent admin web application deployable to its own Vercel domain
+- JWT authentication with secure login and registration
+- Protected dashboard (`/dashboard`) with Home, Products, and Profile tabs
+- Real-time catalog CRUD (Create, Read, Update, Delete products live in PostgreSQL)
+- Stock availability toggle and image URL preview
+- Direct link to customer storefront
 
 ---
 
@@ -39,11 +44,12 @@ al-rafa-roastery/
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, Vite, React Router DOM |
-| Backend | ASP.NET Core 10, Entity Framework Core |
-| Database | PostgreSQL 18 |
+| Customer Frontend | React 19, Vite, Lucide Icons (Port 5173) |
+| Admin Frontend | React 19, Vite, Lucide Icons (Port 5174) |
+| Backend | ASP.NET Core 10, Entity Framework Core 9 |
+| Database | PostgreSQL |
 | Auth | JWT Bearer tokens, BCrypt password hashing |
-| Styling | Vanilla CSS with CSS variables |
+| Styling | Vanilla CSS with luxury gold & dark roast tokens |
 
 ---
 
@@ -52,32 +58,54 @@ al-rafa-roastery/
 ### Prerequisites
 - Node.js 18+
 - .NET 10 SDK
-- PostgreSQL 18 running on `localhost:5432`
+- PostgreSQL running locally or remote on Render / Supabase
 
 ### 1. Backend
 ```bash
 cd backend
 dotnet run --urls "http://localhost:5000"
 ```
-The API auto-creates the database schema and seeds sample products on first run.
+The API is available at `http://localhost:5000` (Swagger UI at `/swagger`).
 
-### 2. Frontend
+### 2. Customer Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Opens at **http://localhost:5173**
+Runs at **http://localhost:5173**
+
+### 3. Admin Frontend
+```bash
+cd frontend-admin
+npm install
+npm run dev
+```
+Runs at **http://localhost:5174**
 
 ---
 
-## 🔑 Admin Access
+## ☁️ Deploying to Vercel (Two Independent Apps)
 
-| URL | Purpose |
-|---|---|
-| `/admin/signup` | Create your admin account |
-| `/admin` | Admin login |
-| `/admin/dashboard` | Protected product management dashboard |
+You can deploy both frontend applications from the same GitHub repository by creating two projects in Vercel:
+
+### Project 1: Customer Storefront
+1. In Vercel, click **Add New...** → **Project** and select this repository.
+2. Under **Root Directory**, click **Edit** and choose `frontend`.
+3. In **Environment Variables**, optionally set:
+   - `VITE_API_URL`: `https://alrafaroastery.onrender.com/api` (defaults to production backend)
+4. Click **Deploy**.
+
+### Project 2: Admin Portal
+1. In Vercel, click **Add New...** → **Project** and select this repository again.
+2. Under **Project Name**, enter something like `al-rafa-roastery-admin`.
+3. Under **Root Directory**, click **Edit** and choose `frontend-admin`.
+4. In **Environment Variables**, configure:
+   - `VITE_API_URL`: `https://alrafaroastery.onrender.com/api`
+   - `VITE_STORE_URL`: Your customer storefront Vercel URL (e.g. `https://al-rafa-roastery-afhyb7jjp-sufiya3.vercel.app`)
+5. Click **Deploy**.
+
+*Note: Both `frontend/` and `frontend-admin/` include `vercel.json` with SPA routing rules to prevent 404 errors on browser page reloads.*
 
 ---
 
@@ -86,6 +114,7 @@ Opens at **http://localhost:5173**
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | GET | `/api/products` | Public | List all products |
+| GET | `/api/products/{id}` | Public | Get single product |
 | POST | `/api/products` | 🔒 JWT | Add a product |
 | PUT | `/api/products/{id}` | 🔒 JWT | Update a product |
 | DELETE | `/api/products/{id}` | 🔒 JWT | Delete a product |
@@ -95,11 +124,9 @@ Opens at **http://localhost:5173**
 ---
 
 ## 📍 About Al Rafa Roastery
-
 Located in **Ras Al Khaimah, UAE** — specializing in:
 - 100% Arabica specialty coffee (fresh daily roasting)
 - Belgian-style handmade chocolates
-- Artisan hot-air roasted nuts
-- Luxury dates & confections
+- Artisan hot-air roasted nuts & luxury dates
 
 📞 WhatsApp: [+971 56 221 1571](https://wa.me/971562211571)

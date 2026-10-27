@@ -9,9 +9,6 @@ import AboutSection from './components/AboutSection';
 import ContactSection from './components/ContactSection';
 import Footer from './components/Footer';
 import Toast from './components/Toast';
-import AdminLogin from './pages/admin/AdminLogin';
-import AdminSignup from './pages/admin/AdminSignup';
-import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import { fetchProducts, checkBackendStatus } from './api';
 import { Search, SlidersHorizontal, RefreshCw, AlertTriangle, Coffee } from 'lucide-react';
 
@@ -406,9 +403,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<ShopPage />} />
-      <Route path="/admin" element={<AdminLogin />} />
-      <Route path="/admin/signup" element={<AdminSignup />} />
-      <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+      <Route path="*" element={<ShopPage />} />
     </Routes>
   );
 }

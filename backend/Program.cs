@@ -68,24 +68,47 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 // Configure CORS
-var allowedOrigins = builder.Configuration
+var configuredOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
-    .Get<string[]>();
+    .Get<string[]>() ?? Array.Empty<string>();
 
-allowedOrigins ??= new[]
+var defaultOrigins = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
 {
     "http://localhost:5173",
+    "http://localhost:5174",
     "http://localhost:3000",
     "https://al-rafa-roastery-afhyb7jjp-sufiya3.vercel.app"
 };
+
+foreach (var origin in configuredOrigins)
+{
+    defaultOrigins.Add(origin);
+}
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins(allowedOrigins)
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy.SetIsOriginAllowed(origin =>
+        {
+            if (string.IsNullOrWhiteSpace(origin)) return false;
+            if (defaultOrigins.Contains(origin)) return true;
+
+            // Allow any Vercel deployment preview or production domain
+            if (Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+            {
+                if (uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+                    uri.Host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        })
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials();
     });
 });
 

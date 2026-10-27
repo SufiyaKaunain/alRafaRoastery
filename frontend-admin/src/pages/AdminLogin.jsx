@@ -1,35 +1,25 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { signupUser } from '../../api';
-import { Eye, EyeOff, Lock, Mail, User, Coffee, ArrowLeft, UserPlus } from 'lucide-react';
+import { loginUser } from '../api';
+import { Eye, EyeOff, Lock, Mail, Coffee, ExternalLink, LogIn } from 'lucide-react';
 
-export default function AdminSignup() {
+export default function AdminLogin() {
   const navigate = useNavigate();
-  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const storeUrl = import.meta.env.VITE_STORE_URL || 'https://al-rafa-roastery-afhyb7jjp-sufiya3.vercel.app';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
-      return;
-    }
-
     setLoading(true);
     try {
-      await signupUser(fullName, email, password);
-      navigate('/admin/dashboard');
+      await loginUser(email, password);
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -64,15 +54,20 @@ export default function AdminSignup() {
         padding: '48px 36px',
         boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
       }}>
-        {/* Back to Shop */}
-        <Link to="/" style={{
-          display: 'inline-flex', alignItems: 'center', gap: '6px',
-          color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem',
-          marginBottom: '28px', transition: 'color 0.2s',
-        }}>
-          <ArrowLeft size={16} />
-          <span>Back to Shop</span>
-        </Link>
+        {/* Visit Storefront Link */}
+        <a 
+          href={storeUrl} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem',
+            marginBottom: '28px', transition: 'color 0.2s',
+          }}
+        >
+          <span>Customer Storefront</span>
+          <ExternalLink size={14} />
+        </a>
 
         {/* Logo & Title */}
         <div style={{ textAlign: 'center', marginBottom: '36px' }}>
@@ -89,10 +84,10 @@ export default function AdminSignup() {
             fontFamily: 'var(--font-serif)', fontSize: '1.6rem', fontWeight: 700,
             color: 'var(--text-cream)', marginBottom: '6px',
           }}>
-            Create Admin Account
+            Admin Login
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            Register to manage Al Rafa Roastery products
+            Sign in to manage Al Rafa Roastery products
           </p>
         </div>
 
@@ -109,36 +104,7 @@ export default function AdminSignup() {
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Full Name */}
-          <div>
-            <label style={{
-              display: 'block', color: 'var(--text-muted)', fontSize: '0.82rem',
-              fontWeight: 600, marginBottom: '8px', textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-            }}>Full Name</label>
-            <div style={{ position: 'relative' }}>
-              <User size={18} style={{
-                position: 'absolute', left: '14px', top: '50%',
-                transform: 'translateY(-50%)', color: 'var(--text-faint)',
-              }} />
-              <input
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Your full name"
-                style={{
-                  width: '100%', padding: '13px 16px 13px 44px',
-                  borderRadius: '12px', border: '1px solid var(--border-gold)',
-                  backgroundColor: 'rgba(27, 18, 12, 0.7)',
-                  color: 'var(--text-cream)', fontSize: '0.95rem',
-                  outline: 'none', transition: 'border-color 0.2s',
-                }}
-              />
-            </div>
-          </div>
-
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           {/* Email */}
           <div>
             <label style={{
@@ -185,7 +151,7 @@ export default function AdminSignup() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Min. 6 characters"
+                placeholder="Enter your password"
                 style={{
                   width: '100%', padding: '13px 48px 13px 44px',
                   borderRadius: '12px', border: '1px solid var(--border-gold)',
@@ -209,35 +175,6 @@ export default function AdminSignup() {
             </div>
           </div>
 
-          {/* Confirm Password */}
-          <div>
-            <label style={{
-              display: 'block', color: 'var(--text-muted)', fontSize: '0.82rem',
-              fontWeight: 600, marginBottom: '8px', textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-            }}>Confirm Password</label>
-            <div style={{ position: 'relative' }}>
-              <Lock size={18} style={{
-                position: 'absolute', left: '14px', top: '50%',
-                transform: 'translateY(-50%)', color: 'var(--text-faint)',
-              }} />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter password"
-                style={{
-                  width: '100%', padding: '13px 16px 13px 44px',
-                  borderRadius: '12px', border: '1px solid var(--border-gold)',
-                  backgroundColor: 'rgba(27, 18, 12, 0.7)',
-                  color: 'var(--text-cream)', fontSize: '0.95rem',
-                  outline: 'none', transition: 'border-color 0.2s',
-                }}
-              />
-            </div>
-          </div>
-
           {/* Submit */}
           <button
             type="submit"
@@ -250,27 +187,27 @@ export default function AdminSignup() {
             }}
           >
             {loading ? (
-              <span>Creating account...</span>
+              <span>Signing in...</span>
             ) : (
               <>
-                <UserPlus size={18} />
-                <span>Create Account</span>
+                <LogIn size={18} />
+                <span>Sign In</span>
               </>
             )}
           </button>
         </form>
 
-        {/* Login Link */}
+        {/* Signup Link */}
         <p style={{
           textAlign: 'center', marginTop: '28px', color: 'var(--text-muted)',
           fontSize: '0.9rem',
         }}>
-          Already have an account?{' '}
-          <Link to="/admin" style={{
+          Don't have an account?{' '}
+          <Link to="/signup" style={{
             color: 'var(--accent-gold)', fontWeight: 700,
             textDecoration: 'none',
           }}>
-            Sign In
+            Create Account
           </Link>
         </p>
       </div>
