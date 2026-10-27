@@ -9,14 +9,14 @@ export default function Navbar({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <nav style={{
+    <nav className="site-navbar" style={{
       position: 'sticky',
       top: 0,
       zIndex: 50,
       backgroundColor: 'rgba(27, 18, 12, 0.92)',
       backdropFilter: 'blur(16px)',
       borderBottom: '1px solid var(--border-gold)',
-      transition: 'all 0.3s ease'
+      transition: 'all 0.35s ease'
     }}>
       <div className="container" style={{
         display: 'flex',
@@ -42,22 +42,24 @@ export default function Navbar({
             }}
           />
           <div>
-            <div style={{
+            <div className="navbar-brand-title" style={{
               fontFamily: 'var(--font-serif)',
               fontSize: '1.25rem',
               fontWeight: 700,
               letterSpacing: '0.08em',
               color: 'var(--text-cream)',
-              lineHeight: 1.1
+              lineHeight: 1.1,
+              transition: 'color 0.3s ease'
             }}>
               AL RAFA ROASTERY
             </div>
-            <div style={{
+            <div className="navbar-brand-subtitle" style={{
               fontFamily: 'var(--font-arabic)',
               fontSize: '0.9rem',
               color: 'var(--accent-gold)',
               letterSpacing: '0.02em',
-              fontWeight: 600
+              fontWeight: 600,
+              transition: 'color 0.3s ease'
             }}>
               محمص الرفاع للشوكولاتة والقهوة
             </div>
@@ -72,13 +74,14 @@ export default function Navbar({
         }} className="desktop-nav">
           <a
             href="#shop-menu"
+            className="nav-link-item"
             style={{
               color: 'var(--accent-gold)',
               textDecoration: 'none',
               fontWeight: 600,
               fontSize: '0.95rem',
               padding: '8px 12px',
-              transition: 'color 0.2s'
+              transition: 'color 0.3s ease'
             }}
           >
             Menu & Shop
@@ -86,13 +89,14 @@ export default function Navbar({
 
           <a
             href="#about"
+            className="nav-link-item"
             style={{
               color: 'var(--text-cream)',
               textDecoration: 'none',
               fontWeight: 500,
               fontSize: '0.95rem',
               padding: '8px 12px',
-              transition: 'color 0.2s'
+              transition: 'color 0.3s ease'
             }}
           >
             Our Story
@@ -100,13 +104,14 @@ export default function Navbar({
 
           <a
             href="#contact"
+            className="nav-link-item"
             style={{
               color: 'var(--text-cream)',
               textDecoration: 'none',
               fontWeight: 500,
               fontSize: '0.95rem',
               padding: '8px 12px',
-              transition: 'color 0.2s'
+              transition: 'color 0.3s ease'
             }}
           >
             Location
@@ -116,6 +121,7 @@ export default function Navbar({
           <button
             onClick={() => setIsCartOpen(true)}
             aria-label="View Shopping Cart"
+            className="nav-cart-btn"
             style={{
               position: 'relative',
               display: 'flex',
@@ -128,7 +134,7 @@ export default function Navbar({
               border: '1px solid var(--border-gold)',
               color: 'var(--accent-gold)',
               cursor: 'pointer',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.3s ease'
             }}
           >
             <ShoppingBag size={20} />
@@ -192,12 +198,14 @@ export default function Navbar({
 
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="nav-mobile-toggle"
             style={{
               padding: '8px',
               background: 'none',
               border: 'none',
               color: 'var(--text-cream)',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'color 0.3s ease'
             }}
           >
             {mobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
@@ -262,6 +270,34 @@ export default function Navbar({
       )}
 
       <style>{`
+        .site-navbar {
+          transition: background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease !important;
+        }
+        .site-navbar:hover {
+          background-color: #ffffff !important;
+          border-bottom: 1px solid rgba(200, 155, 106, 0.4) !important;
+          box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08) !important;
+        }
+        .site-navbar:hover .navbar-brand-title {
+          color: #3D2314 !important;
+        }
+        .site-navbar:hover .navbar-brand-subtitle {
+          color: #4A2B18 !important;
+        }
+        .site-navbar:hover .nav-link-item {
+          color: #3D2314 !important;
+        }
+        .site-navbar:hover .nav-link-item:hover {
+          color: var(--accent-gold) !important;
+        }
+        .site-navbar:hover .nav-cart-btn {
+          background-color: rgba(61, 35, 20, 0.06) !important;
+          border-color: rgba(61, 35, 20, 0.25) !important;
+          color: #3D2314 !important;
+        }
+        .site-navbar:hover .nav-mobile-toggle {
+          color: #3D2314 !important;
+        }
         @media (max-width: 768px) {
           .desktop-nav { display: none !important; }
           .mobile-only { display: flex !important; }
