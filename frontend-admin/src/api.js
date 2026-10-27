@@ -1,9 +1,16 @@
 // ─── API Configuration ──────────────────────────────────────────────
-const RAW_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://alrafaroastery.onrender.com/api');
-const BACKEND_BASE = RAW_BASE.replace(/\/$/, '');
+function getApiBase() {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && envUrl.trim() !== '') {
+    const clean = envUrl.trim().replace(/\/+$/, '');
+    return clean.endsWith('/api') ? clean : `${clean}/api`;
+  }
+  return import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://alrafaroastery.onrender.com/api';
+}
 
-const API_BASE = `${BACKEND_BASE}/Products`;
-const AUTH_BASE = `${BACKEND_BASE}/auth`;
+const API_ROOT = getApiBase();
+const API_BASE = `${API_ROOT}/Products`;
+const AUTH_BASE = `${API_ROOT}/auth`;
 
 // ─── Token Management ───────────────────────────────────────────────
 
