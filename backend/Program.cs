@@ -114,13 +114,39 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Apply EF Core migrations on startup
+// Apply EF Core migrations and synchronize PostgreSQL sequences on startup
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider
-        .GetRequiredService<AppDbContext>();
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Database.Migrate();
 
-    // db.Database.Migrate();
+        // Ensure PostgreSQL identity sequences match seeded data
+        db.Database.ExecuteSqlRaw(@"
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Products') THEN
+                    PERFORM setval(
+                        pg_get_serial_sequence('""Products""', 'Id'),
+                        COALESCE((SELECT MAX(""Id"") FROM ""Products""), 1),
+                        true
+                    );
+                END IF;
+                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Users') THEN
+                    PERFORM setval(
+                        pg_get_serial_sequence('""Users""', 'Id'),
+                        COALESCE((SELECT MAX(""Id"") FROM ""Users""), 1),
+                        true
+                    );
+                END IF;
+            END $$;
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Database initialization note: {ex.Message}");
+    }
 }
 
 // Configure pipeline

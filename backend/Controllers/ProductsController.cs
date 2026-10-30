@@ -27,7 +27,7 @@ public class ProductsController : ControllerBase
     }
 
     // GET: api/products/5
-    [HttpGet("{id}")]
+    [HttpGet("{id}", Name = "GetProduct")]
     public async Task<ActionResult<Product>> GetProduct(int id)
     {
         var product = await _context.Products.FindAsync(id);
@@ -42,13 +42,37 @@ public class ProductsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Product>> CreateProduct(Product product)
     {
-        product.CreatedAt = DateTime.UtcNow;
-        product.UpdatedAt = DateTime.UtcNow;
+        try
+        {
+            product.Id = 0;
+            product.CreatedAt = DateTime.UtcNow;
+            product.UpdatedAt = DateTime.UtcNow;
 
-        _context.Products.Add(product);
-        await _context.SaveChangesAsync();
+            _context.Products.Add(product);
+            await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
+            return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
+        }
+        catch (DbUpdateException ex)
+        {
+            // If primary key collision occurs due to out-of-sync sequence from seeded data:
+            try
+            {
+                await _context.Database.ExecuteSqlRawAsync(@"
+                    SELECT setval(pg_get_serial_sequence('""Products""', 'Id'), COALESCE((SELECT MAX(""Id"") FROM ""Products""), 1), true);
+                ");
+                await _context.SaveChangesAsync();
+                return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
+            }
+            catch (Exception innerEx)
+            {
+                return StatusCode(500, new { message = "Database error while saving product: " + (innerEx.InnerException?.Message ?? innerEx.Message ?? ex.Message) });
+            }
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Failed to create product: " + ex.Message });
+        }
     }
 
     // PUT: api/products/5

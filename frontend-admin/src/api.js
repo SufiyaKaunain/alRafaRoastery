@@ -5,7 +5,7 @@ function getApiBase() {
     const clean = envUrl.trim().replace(/\/+$/, '');
     return clean.endsWith('/api') ? clean : `${clean}/api`;
   }
-  return import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://alrafaroastery.onrender.com/api';
+  return 'https://alrafaroastery.onrender.com/api';
 }
 
 const API_ROOT = getApiBase();
@@ -109,9 +109,19 @@ export async function createProduct(productData) {
     body: JSON.stringify(productData),
   });
   if (!response.ok) {
-    if (response.status === 401) throw new Error('Unauthorized. Please login again.');
+    if (response.status === 401) {
+      clearAuthData();
+      throw new Error('Unauthorized or session expired. Please log in again.');
+    }
     const errorText = await response.text();
-    throw new Error(`Failed to create product: ${errorText || response.statusText}`);
+    let errorMsg = response.statusText;
+    try {
+      const parsed = JSON.parse(errorText);
+      errorMsg = parsed.message || parsed.title || errorText;
+    } catch {
+      if (errorText) errorMsg = errorText;
+    }
+    throw new Error(`Failed to create product: ${errorMsg}`);
   }
   return await response.json();
 }
@@ -123,9 +133,19 @@ export async function updateProduct(id, productData) {
     body: JSON.stringify({ ...productData, id }),
   });
   if (!response.ok) {
-    if (response.status === 401) throw new Error('Unauthorized. Please login again.');
+    if (response.status === 401) {
+      clearAuthData();
+      throw new Error('Unauthorized or session expired. Please log in again.');
+    }
     const errorText = await response.text();
-    throw new Error(`Failed to update product: ${errorText || response.statusText}`);
+    let errorMsg = response.statusText;
+    try {
+      const parsed = JSON.parse(errorText);
+      errorMsg = parsed.message || parsed.title || errorText;
+    } catch {
+      if (errorText) errorMsg = errorText;
+    }
+    throw new Error(`Failed to update product: ${errorMsg}`);
   }
   return await response.json();
 }
@@ -136,7 +156,10 @@ export async function deleteProduct(id) {
     headers: authHeaders(),
   });
   if (!response.ok) {
-    if (response.status === 401) throw new Error('Unauthorized. Please login again.');
+    if (response.status === 401) {
+      clearAuthData();
+      throw new Error('Unauthorized or session expired. Please log in again.');
+    }
     throw new Error(`Failed to delete product: ${response.statusText}`);
   }
   return true;

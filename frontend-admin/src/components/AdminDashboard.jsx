@@ -136,6 +136,11 @@ export default function AdminDashboard({
       onRefresh();
     } catch (err) {
       showToast(`Error: ${err.message}`, 'error');
+      if (err.message && (err.message.includes('log in again') || err.message.includes('session expired') || err.message.includes('Unauthorized'))) {
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 1800);
+      }
     } finally {
       setIsSaving(false);
     }
