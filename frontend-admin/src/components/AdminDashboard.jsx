@@ -1,18 +1,27 @@
-import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Search, RefreshCw } from 'lucide-react';
-import { createProduct, updateProduct, deleteProduct } from '../api';
+import React, { useState, useRef } from 'react';
+import { Plus, Edit, Trash2, Search, RefreshCw, Upload, Image as ImageIcon, Check, Loader2, Link as LinkIcon, Folder } from 'lucide-react';
+import { createProduct, updateProduct, deleteProduct, uploadProductImage } from '../api';
 
 const PRESET_IMAGES = [
-  { label: 'Belgian Milk Chocolate', url: 'https://images.unsplash.com/photo-1549007994-cb92caebd54b?w=600' },
-  { label: 'Dark Chocolate 70%', url: 'https://images.unsplash.com/photo-1548741487-18d363dc4469?w=600' },
-  { label: 'Chocolate Gift Box', url: 'https://images.unsplash.com/photo-1526081347589-7fa3cb41b4b2?w=600' },
-  { label: 'Stuffed Dates Box', url: 'https://images.unsplash.com/photo-1575377427642-087cf684f29d?w=600' },
-  { label: 'Spanish Latte', url: 'https://images.unsplash.com/photo-1541167760496-1628856ab772?w=600' },
-  { label: 'Pistachio Latte', url: 'https://images.unsplash.com/photo-1570968915860-54d5c301fa9f?w=600' },
-  { label: 'Espresso Beans', url: 'https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=600' },
-  { label: 'Arabic Coffee', url: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=600' },
-  { label: 'Roasted Pistachios', url: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=600' },
-  { label: 'Chocolate Dipped Dates', url: 'https://images.unsplash.com/photo-1606312619070-d48b4c652a52?w=600' },
+  { label: 'Spanish Latte', url: '/assets/products/spanish-latte.jpg' },
+  { label: 'Pistachio Latte', url: '/assets/products/pistachio-latte.jpg' },
+  { label: 'Saffron Latte', url: '/assets/products/saffron-latte.jpg' },
+  { label: 'Espresso', url: '/assets/products/espresso.jpg' },
+  { label: 'V60 Pour Over', url: '/assets/products/v60-pour-over.jpg' },
+  { label: 'Espresso Beans', url: '/assets/products/espresso-beans.jpg' },
+  { label: 'Arabic Coffee', url: '/assets/products/arabic-coffee.jpg' },
+  { label: 'Turkish Coffee', url: '/assets/products/turkish-coffee.jpg' },
+  { label: 'House Blend', url: '/assets/products/house-blend.jpg' },
+  { label: 'Cold Brew', url: '/assets/products/cold-brew.jpg' },
+  { label: 'Roasted Pistachios', url: '/assets/products/roasted-pistachios.jpg' },
+  { label: 'Roasted Almonds', url: '/assets/products/roasted-almonds.jpg' },
+  { label: 'Roasted Cashews', url: '/assets/products/roasted-cashews.jpg' },
+  { label: 'Mixed Nuts', url: '/assets/products/mixed-nuts.jpg' },
+  { label: 'Milk Chocolate', url: '/assets/products/milk-chocolate.jpg' },
+  { label: 'Dark Chocolate', url: '/assets/products/dark-chocolate.jpg' },
+  { label: 'Filled Chocolates', url: '/assets/products/filled-chocolates.jpg' },
+  { label: 'Stuffed Dates', url: '/assets/products/stuffed-dates.jpg' },
+  { label: 'Chocolate Dates', url: '/assets/products/chocolate-dates.jpg' },
 ];
 
 /* ── Light vs dark tokens ───────────────────────────────── */
@@ -80,6 +89,9 @@ export default function AdminDashboard({
   const [editingProduct, setEditingProduct] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageTab, setImageTab] = useState('upload'); // 'upload' | 'preset' | 'url'
+  const fileInputRef = useRef(null);
 
   const initialForm = {
     name: '', nameAr: '', description: '', descriptionAr: '',
@@ -87,6 +99,44 @@ export default function AdminDashboard({
     imageUrl: PRESET_IMAGES[0].url, tag: '', isAvailable: true,
   };
   const [form, setForm] = useState(initialForm);
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await processUploadedFile(file);
+  };
+
+  const processUploadedFile = async (file) => {
+    if (!file.type.startsWith('image/')) {
+      showToast('Please select a valid image file (PNG, JPG, WEBP, SVG)', 'error');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('Image size cannot exceed 10MB', 'error');
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const savedUrl = await uploadProductImage(file);
+      setForm(prev => ({ ...prev, imageUrl: savedUrl }));
+      showToast('Product image saved in assets folder!', 'success');
+    } catch (err) {
+      showToast('Failed to upload image: ' + err.message, 'error');
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      await processUploadedFile(file);
+    }
+  };
 
   const categories = ['ALL', ...new Set(products.map(p => p.category).filter(Boolean))];
   const filteredProducts = products.filter(p => {
@@ -479,31 +529,238 @@ export default function AdminDashboard({
                 </div>
               </div>
 
-              {/* Image URL */}
-              <div>
-                <label style={labelStyle}>Product Image URL</label>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                  <input type="url" value={form.imageUrl}
-                    onChange={e => setForm({ ...form, imageUrl: e.target.value })}
-                    placeholder="https://..." style={{ ...inputStyle, flexGrow: 1 }} />
-                  {form.imageUrl && (
-                    <img src={form.imageUrl} alt="Preview"
-                      style={{ width: '44px', height: '44px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
-                      onError={e => { e.currentTarget.style.display = 'none'; }} />
-                  )}
-                </div>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.72rem', color: t.textFaint }}>Quick presets:</span>
-                  {PRESET_IMAGES.slice(0, 5).map(img => (
-                    <button type="button" key={img.label}
-                      onClick={() => setForm({ ...form, imageUrl: img.url })}
+              {/* Product Image Section */}
+              <div style={{
+                background: lightMode ? '#f9fafb' : 'rgba(255,255,255,0.02)',
+                border: `1px solid ${t.border}`,
+                borderRadius: '12px',
+                padding: '16px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <label style={{ ...labelStyle, marginBottom: 0 }}>Product Image *</label>
+                  
+                  {/* Mode switcher */}
+                  <div style={{ display: 'inline-flex', gap: '4px', background: lightMode ? '#e5e7eb' : 'rgba(255,255,255,0.06)', padding: '3px', borderRadius: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setImageTab('upload')}
                       style={{
-                        padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem',
-                        background: t.presetBtn.bg, border: `1px solid ${t.presetBtn.border}`, color: t.presetBtn.color,
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                        padding: '4px 10px', borderRadius: '6px', border: 'none',
+                        background: imageTab === 'upload' ? '#C89B6A' : 'transparent',
+                        color: imageTab === 'upload' ? '#1B120C' : t.textMuted,
+                        fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
                       }}
-                    >{img.label}</button>
-                  ))}
+                    >
+                      <Upload size={13} /> Upload File
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImageTab('preset')}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                        padding: '4px 10px', borderRadius: '6px', border: 'none',
+                        background: imageTab === 'preset' ? '#C89B6A' : 'transparent',
+                        color: imageTab === 'preset' ? '#1B120C' : t.textMuted,
+                        fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+                      }}
+                    >
+                      <Folder size={13} /> Assets Folder
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImageTab('url')}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                        padding: '4px 10px', borderRadius: '6px', border: 'none',
+                        background: imageTab === 'url' ? '#C89B6A' : 'transparent',
+                        color: imageTab === 'url' ? '#1B120C' : t.textMuted,
+                        fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+                      }}
+                    >
+                      <LinkIcon size={13} /> Direct URL
+                    </button>
+                  </div>
                 </div>
+
+                {/* Tab 1: Upload File */}
+                {imageTab === 'upload' && (
+                  <div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileSelect}
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                    />
+                    <div
+                      onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                      style={{
+                        border: `2px dashed ${isUploadingImage ? '#C89B6A' : (lightMode ? '#d1d5db' : 'rgba(200,155,106,0.35)')}`,
+                        borderRadius: '10px',
+                        padding: '20px',
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        background: lightMode ? '#ffffff' : 'rgba(255,255,255,0.02)',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {isUploadingImage ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: '#C89B6A' }}>
+                          <Loader2 size={28} className="animate-spin" />
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Saving image to assets/products folder...</span>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                          <div style={{
+                            width: '40px', height: '40px', borderRadius: '50%',
+                            background: 'rgba(200,155,106,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: '#C89B6A', marginBottom: '2px',
+                          }}>
+                            <Upload size={20} />
+                          </div>
+                          <div style={{ fontSize: '0.88rem', fontWeight: 700, color: t.textPrimary }}>
+                            Click to upload or drag &amp; drop product image
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: t.textMuted }}>
+                            PNG, JPG, WEBP, SVG up to 10MB • Saved directly to dashboard assets folder
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 2: Assets Folder Presets */}
+                {imageTab === 'preset' && (
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: t.textMuted, marginBottom: '8px' }}>
+                      Choose an authentic roastery image saved in <code style={{ color: '#C89B6A' }}>assets/products</code>:
+                    </div>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                      gap: '8px',
+                      maxHeight: '160px',
+                      overflowY: 'auto',
+                      padding: '4px',
+                    }}>
+                      {PRESET_IMAGES.map(img => {
+                        const isSelected = form.imageUrl === img.url;
+                        return (
+                          <div
+                            key={img.label}
+                            onClick={() => setForm({ ...form, imageUrl: img.url })}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              padding: '6px 8px',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              border: `1px solid ${isSelected ? '#C89B6A' : t.border}`,
+                              background: isSelected ? (lightMode ? '#fff8f0' : 'rgba(200,155,106,0.15)') : (lightMode ? '#ffffff' : 'transparent'),
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            <img
+                              src={img.url}
+                              alt={img.label}
+                              style={{ width: '28px', height: '28px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }}
+                              onError={e => { e.currentTarget.src = '/logo-circle.png'; }}
+                            />
+                            <span style={{
+                              fontSize: '0.75rem',
+                              fontWeight: isSelected ? 700 : 500,
+                              color: isSelected ? '#C89B6A' : t.textPrimary,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              flex: 1,
+                            }}>
+                              {img.label}
+                            </span>
+                            {isSelected && <Check size={14} color="#C89B6A" style={{ flexShrink: 0 }} />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 3: Direct URL */}
+                {imageTab === 'url' && (
+                  <div>
+                    <input
+                      type="text"
+                      value={form.imageUrl}
+                      onChange={e => setForm({ ...form, imageUrl: e.target.value })}
+                      placeholder="e.g. /assets/products/my-image.jpg or https://..."
+                      style={inputStyle}
+                    />
+                    <div style={{ fontSize: '0.72rem', color: t.textFaint, marginTop: '4px' }}>
+                      Can be a relative assets path (e.g. /assets/products/item.jpg) or full web URL.
+                    </div>
+                  </div>
+                )}
+
+                {/* Current Selected Image Preview */}
+                {form.imageUrl && (
+                  <div style={{
+                    marginTop: '12px',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    background: lightMode ? '#ffffff' : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${t.border}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                      <img
+                        src={form.imageUrl}
+                        alt="Selected Preview"
+                        style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: `1px solid ${t.border}` }}
+                        onError={e => { e.currentTarget.src = '/logo-circle.png'; }}
+                      />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: t.textPrimary }}>
+                          Selected Image Path:
+                        </div>
+                        <div style={{
+                          fontSize: '0.74rem',
+                          color: '#C89B6A',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          fontFamily: 'monospace',
+                        }}>
+                          {form.imageUrl}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, imageUrl: '' })}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: lightMode ? '#fee2e2' : 'rgba(239,68,68,0.15)',
+                        color: '#dc2626',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Tag & Availability */}

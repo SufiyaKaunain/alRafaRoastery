@@ -86,6 +86,54 @@ export function logoutUser() {
 
 // ─── Products API ────────────────────────────────────────────────────
 
+export async function uploadProductImage(file) {
+  // 1. Try local dev Vite middleware if running on localhost
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    try {
+      const devRes = await fetch('/api/upload-local', {
+        method: 'POST',
+        headers: {
+          'Content-Type': file.type || 'image/jpeg',
+        },
+        body: file,
+      });
+      if (devRes.ok) {
+        const data = await devRes.json();
+        if (data.url) return data.url;
+      }
+    } catch {
+      // Fall through to backend upload
+    }
+  }
+
+  // 2. Try Backend API upload endpoint
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const token = getToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await fetch(`${API_ROOT}/products/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data.url || data.relativeUrl;
+    }
+  } catch (err) {
+    console.warn('Backend upload failed, attempting fallback:', err);
+  }
+
+  // 3. Fallback: Base64 Data URL
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Failed to read image file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
 export async function fetchProducts() {
   const response = await fetch(API_BASE);
   if (!response.ok) {
