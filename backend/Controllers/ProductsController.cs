@@ -19,11 +19,56 @@ public class ProductsController : ControllerBase
 
     // GET: api/products
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
+    public async Task<ActionResult<IEnumerable<Product>>> GetProducts(
+        [FromQuery] string? category,
+        [FromQuery] string? search,
+        [FromQuery] string? sortBy)
     {
-        return await _context.Products
-            .OrderByDescending(p => p.CreatedAt)
+        var query = _context.Products.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(category) && !category.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(p => p.Category == category);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            query = query.Where(p =>
+                p.Name.ToLower().Contains(s) ||
+                p.NameAr.Contains(s) ||
+                p.Description.ToLower().Contains(s) ||
+                p.Category.ToLower().Contains(s));
+        }
+
+        query = sortBy switch
+        {
+            "price-asc" => query.OrderBy(p => p.Price),
+            "price-desc" => query.OrderByDescending(p => p.Price),
+            "newest" => query.OrderByDescending(p => p.CreatedAt),
+            _ => query.OrderByDescending(p => p.Tag == "bestseller" || p.Tag == "popular")
+                      .ThenByDescending(p => p.CreatedAt)
+        };
+
+        return await query.ToListAsync();
+    }
+
+    // GET: api/products/categories
+    [HttpGet("categories")]
+    public async Task<ActionResult<IEnumerable<object>>> GetCategories()
+    {
+        var categories = await _context.Products
+            .Where(p => !string.IsNullOrEmpty(p.Category))
+            .GroupBy(p => p.Category)
+            .Select(g => new
+            {
+                name = g.Key,
+                count = g.Count()
+            })
+            .OrderBy(c => c.name)
             .ToListAsync();
+
+        return Ok(categories);
     }
 
     // GET: api/products/5

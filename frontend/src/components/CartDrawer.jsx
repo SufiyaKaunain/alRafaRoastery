@@ -1,204 +1,210 @@
 import React, { useState } from 'react';
-import { X, Trash2, Plus, Minus, ShoppingBag, MessageCircle, ArrowRight } from 'lucide-react';
+import { STORE_INFO } from '../data/storeData';
 
-export default function CartDrawer({ 
-  isOpen, 
-  onClose, 
-  cartItems, 
-  onUpdateQuantity, 
-  onRemoveItem, 
-  onClearCart 
+export default function CartDrawer({
+  isOpen,
+  onClose,
+  cartItems,
+  onUpdateQuantity,
+  onRemoveItem,
+  onClearCart,
+  lang = 'en',
 }) {
   const [customerName, setCustomerName] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
   const [notes, setNotes] = useState('');
 
   if (!isOpen) return null;
 
-  const totalAmount = cartItems.reduce(
-    (sum, item) => sum + Number(item.price) * item.quantity, 
-    0
-  );
+  const isAr = lang === 'ar';
+  const totalAmount = cartItems.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
+  const totalCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleWhatsAppCheckout = () => {
     if (cartItems.length === 0) return;
 
-    let message = `*☕ AL RAFA ROASTERY ORDER*\n\n`;
-    if (customerName.trim()) {
-      message += `*Customer:* ${customerName.trim()}\n`;
-    }
-    message += `*Items:*\n`;
+    let msg = `*☕ AL RAFA ROASTERY ORDER*\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    if (customerName.trim()) msg += `*Customer:* ${customerName.trim()}\n`;
+    if (deliveryAddress.trim()) msg += `*Delivery Location:* ${deliveryAddress.trim()}\n`;
+    msg += `\n*Order Items:*\n`;
 
     cartItems.forEach((item, index) => {
       const lineTotal = (Number(item.price) * item.quantity).toFixed(2);
-      message += `${index + 1}. ${item.name} (${item.quantity}x) — ${lineTotal} AED\n`;
+      msg += `${index + 1}. *${item.name}*`;
+      if (item.selectedWeight) msg += ` (${item.selectedWeight})`;
+      msg += `\n   Qty: ${item.quantity} × AED ${Number(item.price).toFixed(2)} = AED ${lineTotal}\n`;
     });
 
-    message += `\n*Total Amount:* ${totalAmount.toFixed(2)} AED\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `*Estimated Total:* AED ${totalAmount.toFixed(2)}\n`;
 
     if (notes.trim()) {
-      message += `*Notes:* ${notes.trim()}\n`;
+      msg += `*Special Notes:* ${notes.trim()}\n`;
     }
 
-    message += `\n_Ordered via Al Rafa Roastery Online Store_`;
+    msg += `\n_Ordered via Al Rafa Roastery Online Store_`;
 
-    const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/971562211571?text=${encoded}`, '_blank');
+    window.open(`https://wa.me/${STORE_INFO.whatsappNumber}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.75)',
-      backdropFilter: 'blur(6px)',
-      zIndex: 90,
-      display: 'flex',
-      justifyContent: 'flex-end',
-      animation: 'fadeIn 0.2s ease forwards'
-    }}>
-      <div 
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
         style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 60,
+        }}
+      />
+
+      {/* Drawer */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          right: isAr ? 'auto' : 0,
+          left: isAr ? 0 : 'auto',
+          bottom: 0,
           width: '100%',
-          maxWidth: '460px',
-          height: '100%',
-          backgroundColor: '#1E140D',
-          borderLeft: '1px solid var(--border-gold)',
+          maxWidth: '440px',
+          backgroundColor: 'var(--shop-bg)',
+          borderLeft: isAr ? 'none' : '1px solid var(--shop-border)',
+          borderRight: isAr ? '1px solid var(--shop-border)' : 'none',
+          zIndex: 61,
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.8)',
-          position: 'relative',
+          boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.7)',
+          animation: 'slideInRight 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
-        {/* Drawer Header */}
-        <div style={{
-          padding: '24px',
-          borderBottom: '1px solid var(--border-gold)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <ShoppingBag size={22} color="var(--accent-gold)" />
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-cream)' }}>
-              Your Cart ({cartItems.reduce((acc, i) => acc + i.quantity, 0)})
+        {/* Header */}
+        <div
+          style={{
+            padding: '20px 24px',
+            borderBottom: '1px solid var(--shop-border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1.2rem' }}>🛍️</span>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>
+              {isAr ? `سلة المشتريات (${totalCount})` : `Shopping Cart (${totalCount})`}
             </h2>
           </div>
           <button
             onClick={onClose}
-            aria-label="Close cart"
+            aria-label="Close"
             style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
               padding: '6px',
+              color: 'var(--shop-text-muted)',
+              fontSize: '1.3rem',
+              lineHeight: 1,
             }}
           >
-            <X size={24} />
+            ✕
           </button>
         </div>
 
-        {/* Cart Item List */}
-        <div style={{
-          flexGrow: 1,
-          overflowY: 'auto',
-          padding: '20px 24px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px'
-        }}>
+        {/* Item List */}
+        <div
+          style={{
+            flexGrow: 1,
+            overflowY: 'auto',
+            padding: '20px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+          }}
+        >
           {cartItems.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '60px 20px',
-              color: 'var(--text-muted)'
-            }}>
-              <ShoppingBag size={48} style={{ margin: '0 auto 16px', opacity: 0.3 }} />
-              <p style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '6px' }}>Your cart is empty</p>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-faint)' }}>Browse our chocolate & coffee roastery menu and add items to your basket.</p>
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--shop-text-muted)' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '14px', opacity: 0.4 }}>☕</div>
+              <p style={{ fontSize: '1rem', fontWeight: 600, color: '#fff', marginBottom: '6px' }}>
+                {isAr ? 'السلة فارغة حالياً' : 'Your cart is empty'}
+              </p>
+              <p style={{ fontSize: '0.85rem' }}>
+                {isAr ? 'تصفح محامصنا والشوكولاتة والمكسرات لإضافة منتجات.' : 'Explore our roasts, chocolates, and nuts to add items.'}
+              </p>
             </div>
           ) : (
             cartItems.map((item) => (
-              <div 
-                key={item.id}
-                className="glass-panel"
+              <div
+                key={`${item.id}-${item.selectedWeight || 'default'}`}
                 style={{
                   display: 'flex',
-                  gap: '14px',
+                  gap: '12px',
+                  alignItems: 'center',
                   padding: '12px',
-                  borderRadius: '12px',
-                  alignItems: 'center'
+                  backgroundColor: 'var(--shop-card)',
+                  borderRadius: '10px',
+                  border: '1px solid var(--shop-border)',
                 }}
               >
-                <img 
-                  src={item.imageUrl || 'https://images.unsplash.com/photo-1549007994-cb92caebd54b?w=600'} 
+                <img
+                  src={item.imageUrl}
                   alt={item.name}
                   style={{
-                    width: '65px',
-                    height: '65px',
+                    width: '64px',
+                    height: '64px',
                     borderRadius: '8px',
                     objectFit: 'cover',
-                    border: '1px solid var(--border-gold)'
+                    flexShrink: 0,
                   }}
-                  onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1549007994-cb92caebd54b?w=600'; }}
                 />
-                
-                <div style={{ flexGrow: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-cream)' }}>
+
+                <div style={{ flexGrow: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {item.name}
                   </div>
-                  {item.weight && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)' }}>
-                      {item.weight}
+                  {item.selectedWeight && (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--shop-primary)' }}>
+                      {item.selectedWeight}
                     </div>
                   )}
-                  <div style={{ color: 'var(--accent-gold)', fontWeight: 700, fontSize: '0.9rem', marginTop: '4px' }}>
-                    {(Number(item.price) * item.quantity).toFixed(2)} AED
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#fff', marginTop: '4px' }}>
+                    AED {(Number(item.price) * item.quantity).toFixed(2)}
                   </div>
                 </div>
 
-                {/* Quantity Controls */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                {/* Qty & Remove */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flexShrink: 0 }}>
                   <button
                     onClick={() => onRemoveItem(item.id)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#f87171',
-                      cursor: 'pointer',
-                      padding: '2px'
-                    }}
+                    style={{ color: '#ef4444', fontSize: '0.8rem', padding: '2px' }}
                     title="Remove item"
                   >
-                    <Trash2 size={15} />
+                    🗑️
                   </button>
-
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                    borderRadius: '6px',
-                    padding: '2px 6px',
-                    border: '1px solid var(--border-gold)'
-                  }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                      borderRadius: '6px',
+                      border: '1px solid var(--shop-border)',
+                    }}
+                  >
                     <button
                       onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-                      style={{ background: 'none', border: 'none', color: 'var(--text-cream)', cursor: 'pointer', padding: '2px' }}
+                      style={{ padding: '2px 8px', color: '#fff', fontSize: '0.9rem' }}
                     >
-                      <Minus size={13} />
+                      -
                     </button>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, minWidth: '16px', textAlign: 'center' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, minWidth: '18px', textAlign: 'center' }}>
                       {item.quantity}
                     </span>
                     <button
                       onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                      style={{ background: 'none', border: 'none', color: 'var(--text-cream)', cursor: 'pointer', padding: '2px' }}
+                      style={{ padding: '2px 8px', color: '#fff', fontSize: '0.9rem' }}
                     >
-                      <Plus size={13} />
+                      +
                     </button>
                   </div>
                 </div>
@@ -207,92 +213,106 @@ export default function CartDrawer({
           )}
         </div>
 
-        {/* Drawer Footer & Checkout */}
+        {/* Footer & Checkout */}
         {cartItems.length > 0 && (
-          <div style={{
-            padding: '24px',
-            borderTop: '1px solid var(--border-gold)',
-            backgroundColor: 'rgba(27, 18, 12, 0.98)'
-          }}>
-            <div style={{ marginBottom: '14px' }}>
-              <input 
-                type="text"
-                placeholder="Your Name (Optional)"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: '6px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid var(--border-gold)',
-                  color: 'var(--text-cream)',
-                  fontSize: '0.85rem',
-                  marginBottom: '8px'
-                }}
-              />
-              <input 
-                type="text"
-                placeholder="Special instructions or notes..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: '6px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid var(--border-gold)',
-                  color: 'var(--text-cream)',
-                  fontSize: '0.85rem'
-                }}
-              />
-            </div>
-
-            <div style={{
+          <div
+            style={{
+              padding: '20px 24px',
+              borderTop: '1px solid var(--shop-border)',
+              backgroundColor: 'var(--shop-bg-light)',
               display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'baseline',
-              marginBottom: '18px'
-            }}>
-              <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>Estimated Total:</span>
-              <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-gold)' }}>
-                {totalAmount.toFixed(2)} AED
+              flexDirection: 'column',
+              gap: '12px',
+            }}
+          >
+            {/* Inputs */}
+            <input
+              type="text"
+              placeholder={isAr ? 'الاسم الكريم (اختياري)' : 'Your Name (optional)'}
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '9px 12px',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--shop-border)',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '0.85rem',
+                outline: 'none',
+              }}
+            />
+
+            <input
+              type="text"
+              placeholder={isAr ? 'عنوان التوصيل أو الإمارة...' : 'Delivery Address / City in UAE...'}
+              value={deliveryAddress}
+              onChange={(e) => setDeliveryAddress(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '9px 12px',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--shop-border)',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '0.85rem',
+                outline: 'none',
+              }}
+            />
+
+            <input
+              type="text"
+              placeholder={isAr ? 'ملاحظات خاصة (مثل درجة الطحن)...' : 'Special notes (e.g. grind level)...'}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '9px 12px',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--shop-border)',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '0.85rem',
+                outline: 'none',
+              }}
+            />
+
+            {/* Total */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingTop: '4px' }}>
+              <span style={{ fontSize: '0.9rem', color: 'var(--shop-text-muted)' }}>
+                {isAr ? 'الإجمالي التقديري:' : 'Estimated Total:'}
+              </span>
+              <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--shop-primary)' }}>
+                AED {totalAmount.toFixed(2)}
               </span>
             </div>
 
+            {/* WhatsApp Checkout Button */}
             <button
               onClick={handleWhatsAppCheckout}
-              className="btn-gold"
-              style={{
-                width: '100%',
-                padding: '14px',
-                fontSize: '1rem',
-                backgroundColor: '#22c55e',
-                color: '#fff',
-                borderColor: '#16a34a'
-              }}
+              className="btn-wa"
+              style={{ width: '100%', padding: '13px', fontSize: '0.95rem' }}
             >
-              <MessageCircle size={20} />
-              <span>Send Order to WhatsApp (0562211571)</span>
+              <span>💬</span>
+              <span>{isAr ? 'إرسال الطلب عبر واتساب (056 221 1571)' : 'Order via WhatsApp (056 221 1571)'}</span>
             </button>
 
             <button
               onClick={onClearCart}
               style={{
-                width: '100%',
                 background: 'none',
                 border: 'none',
-                color: 'var(--text-faint)',
-                fontSize: '0.78rem',
-                marginTop: '10px',
-                cursor: 'pointer'
+                color: 'var(--shop-text-faint)',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                textAlign: 'center',
               }}
             >
-              Clear entire cart
+              {isAr ? 'إفراغ السلة بالكامل' : 'Clear entire cart'}
             </button>
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

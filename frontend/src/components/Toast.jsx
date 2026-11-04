@@ -9,50 +9,52 @@ export default function Toast({ toasts, onClose }) {
       position: 'fixed',
       bottom: '24px',
       right: '24px',
-      zIndex: 200,
+      zIndex: 300,
       display: 'flex',
       flexDirection: 'column',
-      gap: '10px',
-      maxWidth: '380px'
+      gap: '8px',
+      maxWidth: '360px',
     }}>
       {toasts.map((toast) => {
-        let bg = '#1E140D';
-        let border = 'var(--border-gold)';
+        let borderColor = '#e5e7eb';
+        let iconColor = '#6b7280';
         let Icon = Info;
-        let iconColor = 'var(--accent-gold)';
+        let bg = '#fff';
 
         if (toast.type === 'success') {
-          border = 'rgba(34, 197, 94, 0.5)';
+          borderColor = '#86efac';
+          iconColor = '#16a34a';
           Icon = CheckCircle2;
-          iconColor = '#4ade80';
+          bg = '#f0fdf4';
         } else if (toast.type === 'error') {
-          border = 'rgba(239, 68, 68, 0.5)';
+          borderColor = '#fca5a5';
+          iconColor = '#dc2626';
           Icon = AlertCircle;
-          iconColor = '#f87171';
+          bg = '#fef2f2';
         }
 
         return (
           <div
             key={toast.id}
-            className="animate-fade-in"
             style={{
-              padding: '12px 16px',
-              borderRadius: '10px',
+              padding: '12px 14px',
+              borderRadius: '8px',
               backgroundColor: bg,
-              border: `1px solid ${border}`,
-              color: 'var(--text-cream)',
-              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.6)',
+              border: `1px solid ${borderColor}`,
+              color: '#1a1a1a',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
-              fontSize: '0.88rem'
+              gap: '10px',
+              fontSize: '0.87rem',
+              animation: 'fadeInUp 0.25s ease',
             }}
           >
-            <Icon size={18} color={iconColor} style={{ flexShrink: 0 }} />
+            <Icon size={17} color={iconColor} style={{ flexShrink: 0 }} />
             <span style={{ flexGrow: 1 }}>{toast.message}</span>
             <button
               onClick={() => onClose(toast.id)}
-              style={{ background: 'none', border: 'none', color: 'var(--text-faint)', cursor: 'pointer', padding: '2px' }}
+              style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: '2px', lineHeight: 1 }}
             >
               <X size={15} />
             </button>
