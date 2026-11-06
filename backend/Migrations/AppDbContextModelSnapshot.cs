@@ -50,10 +50,15 @@ namespace AlRafaApi.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("Highlight")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("ImageUrl")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<bool>("IsAvailable")
                         .HasColumnType("boolean");
@@ -68,13 +73,29 @@ namespace AlRafaApi.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<decimal?>("OriginalPrice")
+                        .HasColumnType("numeric");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("ProdImg")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("ProdVarients_Pricing")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.Property<int>("StockQuantity")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Tag")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
@@ -83,8 +104,13 @@ namespace AlRafaApi.Migrations
 
                     b.Property<string>("Weight")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("WeightPrices")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
 
                     b.HasKey("Id");
 
@@ -94,226 +120,296 @@ namespace AlRafaApi.Migrations
                         new
                         {
                             Id = 1,
-                            Category = "Specialty Drinks",
+                            Category = "Arabic & Gulf Heritage Roasts",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Espresso, fresh milk & sweet condensed milk, served over ice or hot.",
-                            DescriptionAr = "إسبريسو وحليب وحليب مكثف محلى",
-                            ImageUrl = "https://images.unsplash.com/photo-1541167760496-1628856ab772?w=600&auto=format&fit=crop&q=80",
+                            Description = "Traditional Emirati light roast infused with green cardamom and genuine Persian saffron threads.",
+                            DescriptionAr = "قهوة عربية أصيلة بالهيل الأخضر والزعفران الفاخر",
+                            Highlight = "",
+                            ImageUrl = "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/category/a2f7b52b-9258-47e5-b135-99ecf60447c3/md.webp",
                             IsAvailable = true,
-                            Name = "Spanish Latte",
-                            NameAr = "سبانيش لاتيه",
-                            Price = 22.00m,
+                            Name = "Emirati Heritage Arabic Coffee",
+                            NameAr = "قهوة عربية تراثية بالهيل والزعفران",
+                            Price = 38.00m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
                             Tag = "bestseller",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "Single Cup"
+                            Weight = "250g, 500g, 1kg",
+                            WeightPrices = ""
                         },
                         new
                         {
                             Id = 2,
-                            Category = "Specialty Drinks",
+                            Category = "African Single Origin Roasts",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Signature espresso blended with artisanal roasted pistachio sauce.",
-                            DescriptionAr = "إسبريسو مع الفستق المحمص",
-                            ImageUrl = "https://images.unsplash.com/photo-1570968915860-54d5c301fa9f?w=600&auto=format&fit=crop&q=80",
+                            Description = "High-altitude African single origin with delicate floral jasmine aromas and bright bergamot citrus notes.",
+                            DescriptionAr = "بن إثيوبي مختص بنكهات زهرية وحمضيات متوازنة",
+                            Highlight = "",
+                            ImageUrl = "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/category/af664982-dd99-408c-bf42-0f0718fb0fce/md.webp",
                             IsAvailable = true,
-                            Name = "Pistachio Latte",
-                            NameAr = "بيستاشيو لاتيه",
-                            Price = 26.00m,
-                            Tag = "bestseller",
+                            Name = "Ethiopian Yirgacheffe Single Origin",
+                            NameAr = "بن إثيوبي يرغاتشيفي مختص",
+                            Price = 55.00m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
+                            Tag = "signature",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "Single Cup"
+                            Weight = "250g, 500g, 1kg",
+                            WeightPrices = ""
                         },
                         new
                         {
                             Id = 3,
-                            Category = "Specialty Drinks",
+                            Category = "Turkish Specialty Roasts",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Rich espresso infused with genuine Persian saffron threads and creamy textured milk.",
-                            DescriptionAr = "إسبريسو منقوع بالزعفران",
-                            ImageUrl = "https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=600&auto=format&fit=crop&q=80",
+                            Description = "Extra-finely stone ground Arabica roasted medium-dark to deliver a thick velvety crema and intense flavor.",
+                            DescriptionAr = "مطحونة على الحجر بنعومة فائقة مع حب الهيل الفاخر",
+                            Highlight = "",
+                            ImageUrl = "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/category/83c47d88-7dd4-430c-a06c-22e8de44c250/md.webp",
                             IsAvailable = true,
-                            Name = "Saffron Latte",
-                            NameAr = "لاتيه الزعفران",
-                            Price = 28.00m,
+                            Name = "Turkish Specialty Roast with Cardamom",
+                            NameAr = "قهوة تركية مختصة بالهيل",
+                            Price = 32.00m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
                             Tag = "popular",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "Single Cup"
+                            Weight = "250g, 500g",
+                            WeightPrices = ""
                         },
                         new
                         {
                             Id = 4,
-                            Category = "Specialty Drinks",
+                            Category = "Premium Nuts & Dry Fruits",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Double shot of single-origin roast, intense body with golden hazelnut crema.",
-                            DescriptionAr = "جرعة مزدوجة بكريمة غنية",
-                            ImageUrl = "https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=600&auto=format&fit=crop&q=80",
+                            Description = "Extra large California pistachios, gently dry roasted and dusted with natural sea salt.",
+                            DescriptionAr = "فستق حلبي فاخر ومقرمش محمص بالهواء الساخن",
+                            Highlight = "",
+                            ImageUrl = "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/product/28e67c2a-351e-4125-9bed-334e253919cc/md.webp",
                             IsAvailable = true,
-                            Name = "Espresso",
-                            NameAr = "إسبريسو",
-                            Price = 14.00m,
-                            Tag = "",
+                            Name = "Premium Jumbo Pistachios – USA",
+                            NameAr = "فستق حلبي جامبو أمريكي – حجم كبير ومقرمش",
+                            Price = 17.25m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
+                            Tag = "bestseller",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "60ml"
+                            Weight = "250g, 500g, 1kg",
+                            WeightPrices = ""
                         },
                         new
                         {
                             Id = 5,
-                            Category = "Specialty Drinks",
+                            Category = "Premium Nuts & Dry Fruits",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Slow-brewed filter coffee extracted to highlight delicate fruit and floral notes.",
-                            DescriptionAr = "تقطير بطيء لقهوة مختصة",
-                            ImageUrl = "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&auto=format&fit=crop&q=80",
+                            Description = "Fresh, naturally rich whole walnut halves imported from Chile, packed with omega-3 nutrients.",
+                            DescriptionAr = "جوز شيلي نخب أول طازج وغني بالفوائد الصحية",
+                            Highlight = "",
+                            ImageUrl = "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/product/179f6430-bb6a-4342-8009-9245bc9072b4/md.webp",
                             IsAvailable = true,
-                            Name = "V60 Specialty Pour Over",
-                            NameAr = "في ٦٠ تقطير",
-                            Price = 20.00m,
-                            Tag = "signature",
+                            Name = "Premium Raw Chile Walnuts",
+                            NameAr = "عين جمل شيلي نيء فاخر – طازج وغني",
+                            Price = 16.50m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
+                            Tag = "popular",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "250ml"
+                            Weight = "250g, 500g, 1kg",
+                            WeightPrices = ""
                         },
                         new
                         {
                             Id = 6,
-                            Category = "Coffee Beans",
+                            Category = "Premium Nuts & Dry Fruits",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Dark roast espresso blend with notes of dark chocolate, brown sugar, and toasted hazelnuts.",
-                            DescriptionAr = "تحميص داكن بنكهة الشوكولاتة",
-                            ImageUrl = "https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=600&auto=format&fit=crop&q=80",
+                            Description = "Smoky, crunchy roasted whole almonds with barbecue spices.",
+                            DescriptionAr = "لوز محمص بنكهة الباربيكيو المدخنة اللذيذة",
+                            Highlight = "",
+                            ImageUrl = "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/product/585d93ba-f13a-49ff-a184-8f8d8a21687c/md.webp",
                             IsAvailable = true,
-                            Name = "Espresso Beans 250g",
-                            NameAr = "بن إسبريسو 250غ",
-                            Price = 45.00m,
-                            Tag = "popular",
+                            Name = "BBQ Almonds – Smoky & Crunchy",
+                            NameAr = "لوز مدخن بنكهة الباربيكيو – مقرمش ولذيذ",
+                            Price = 12.50m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
+                            Tag = "bestseller",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "250g"
+                            Weight = "250g, 500g, 1kg",
+                            WeightPrices = ""
                         },
                         new
                         {
                             Id = 7,
-                            Category = "Coffee Beans",
+                            Category = "Premium Nuts & Dry Fruits",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Traditional Emirati light roast infused with cardamom and saffron essence.",
-                            DescriptionAr = "بالهيل والزعفران، تحميص خفيف أصيل",
-                            ImageUrl = "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=600&auto=format&fit=crop&q=80",
+                            Description = "Premium whole jumbo cashews dry roasted to a rich buttery crunch.",
+                            DescriptionAr = "حبات كاجو كاملة بتحميص ذهبي وقرمشة رائعة",
+                            Highlight = "",
+                            ImageUrl = "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/product/058742ad-5b69-4563-9737-f7078b51fac4/md.webp",
                             IsAvailable = true,
-                            Name = "Arabic Coffee 250g",
-                            NameAr = "قهوة عربية 250غ",
-                            Price = 38.00m,
-                            Tag = "traditional",
+                            Name = "Golden Roasted Cashews",
+                            NameAr = "كاجو محمص ذهبي – قرمشة ونكهة زبدية غنية",
+                            Price = 12.00m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
+                            Tag = "popular",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "250g"
+                            Weight = "250g, 500g, 1kg",
+                            WeightPrices = ""
                         },
                         new
                         {
                             Id = 8,
-                            Category = "Coffee Beans",
+                            Category = "Premium Nuts & Dry Fruits",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Extra-finely ground arabica roasted to perfection with aromatic green cardamom.",
-                            DescriptionAr = "مطحونة ناعماً على الطريقة التقليدية",
-                            ImageUrl = "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600&auto=format&fit=crop&q=80",
+                            Description = "Zesty and crunchy roasted pistachios coated with refreshing lemon salt.",
+                            DescriptionAr = "فستق أمريكي محمص بنكهة الليمون المنعشة",
+                            Highlight = "",
+                            ImageUrl = "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/product/8210d982-94e9-47d0-b153-57b39b67c77c/md.webp",
                             IsAvailable = true,
-                            Name = "Turkish Coffee 250g",
-                            NameAr = "قهوة تركية 250غ",
-                            Price = 32.00m,
+                            Name = "Jumbo Lemon Pistachios – USA",
+                            NameAr = "فستق ليمون جامبو أمريكي – منعش ومقرمش",
+                            Price = 17.25m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
                             Tag = "",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "250g"
+                            Weight = "250g, 500g, 1kg",
+                            WeightPrices = ""
                         },
                         new
                         {
                             Id = 9,
-                            Category = "Coffee Beans",
+                            Category = "Premium Nuts & Dry Fruits",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Our signature house roast combining Ethiopian Yirgacheffe and Colombian Supremo.",
-                            DescriptionAr = "خلطتنا المميزة الخاصة برأس الخيمة",
-                            ImageUrl = "https://images.unsplash.com/photo-1611854779393-1b2da9d400fe?w=600&auto=format&fit=crop&q=80",
+                            Description = "Crunchy crispy coated peanuts infused with red chili and oriental spices.",
+                            DescriptionAr = "فول سوداني مغطى بطبقة مقرمشة وحارة غنية بالنكهة",
+                            Highlight = "",
+                            ImageUrl = "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/product/de1ae015-bc57-41e6-961d-c183850cd7f6/md.webp",
                             IsAvailable = true,
-                            Name = "Specialty House Blend 250g",
-                            NameAr = "خلطة مختصة 250غ",
-                            Price = 55.00m,
-                            Tag = "signature",
+                            Name = "Spicy Coated Peanuts",
+                            NameAr = "فول سوداني حار مقرمش – نكهة مميزة",
+                            Price = 7.50m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
+                            Tag = "",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "250g"
+                            Weight = "250g, 500g",
+                            WeightPrices = ""
                         },
                         new
                         {
                             Id = 10,
-                            Category = "Coffee Beans",
+                            Category = "Premium Nuts & Dry Fruits",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cold extracted for 18 hours in small batches, naturally sweet and low acidity.",
-                            DescriptionAr = "منقوعة 18 ساعة، باردة ومنعشة",
-                            ImageUrl = "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=600&auto=format&fit=crop&q=80",
+                            Description = "Crunchy peanuts enveloped in a savory barbecue crust.",
+                            DescriptionAr = "فول سوداني بنكهة الباربيكيو اللذيذة",
+                            Highlight = "",
+                            ImageUrl = "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/product/49a53b00-0444-45d2-96fb-8a1283ef9e5c/md.webp",
                             IsAvailable = true,
-                            Name = "Cold Brew Bottle",
-                            NameAr = "قارورة كولد برو",
-                            Price = 18.00m,
+                            Name = "BBQ Coated Peanuts",
+                            NameAr = "فول سوداني مقرمش بنكهة الباربيكيو",
+                            Price = 7.50m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
                             Tag = "",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "300ml"
+                            Weight = "250g, 500g",
+                            WeightPrices = ""
                         },
                         new
                         {
                             Id = 11,
-                            Category = "Premium Nuts",
+                            Category = "Premium Chocolates",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Jumbo California pistachios, gently hot-air roasted and dusted with natural sea salt.",
-                            DescriptionAr = "محمص ومملح بخفة وبجودة فاخرة",
-                            ImageUrl = "https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=600&auto=format&fit=crop&q=80",
+                            Description = "Handcrafted Belgian pralines with hazelnut gianduja, pistachio cream, and salted caramel.",
+                            DescriptionAr = "تشكيلة حبات شوكولاتة بلجيكية فاخرة بحشوات الفستق والكراميل والبندق",
+                            Highlight = "",
+                            ImageUrl = "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/category/fbf2e333-806c-4031-abe7-56e7b85c12e8/md.webp",
                             IsAvailable = true,
-                            Name = "Roasted Pistachios 500g",
-                            NameAr = "فستق حلبي محمص 500غ",
-                            Price = 45.00m,
-                            Tag = "bestseller",
+                            Name = "Luxury Belgian Chocolates Gift Box",
+                            NameAr = "علبة شوكولاتة بلجيكية فاخرة مشكلة",
+                            Price = 55.00m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
+                            Tag = "signature",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "500g"
+                            Weight = "500g, 1kg",
+                            WeightPrices = ""
                         },
                         new
                         {
                             Id = 12,
-                            Category = "Premium Nuts",
+                            Category = "Premium Dates",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Crunchy whole roasted almonds with a smoky aroma and light crispiness.",
-                            DescriptionAr = "لوز محمص ذهبي مقرمش",
-                            ImageUrl = "https://images.unsplash.com/photo-1508061252445-5350f3ab0a55?w=600&auto=format&fit=crop&q=80",
+                            Description = "Selected premium Medjool dates stuffed with crunchy California almonds and roasted pistachios.",
+                            DescriptionAr = "تمر مجدول فاخر محشو بالفستق الحلبي واللوز المقرمش",
+                            Highlight = "",
+                            ImageUrl = "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/category/7ac1928e-4e6a-4d2d-b71e-e87e9e97c52d/md.webp",
                             IsAvailable = true,
-                            Name = "Golden Roasted Almonds 500g",
-                            NameAr = "لوز محمص ذهبي 500غ",
-                            Price = 38.00m,
-                            Tag = "",
+                            Name = "Royal Stuffed Dates with Pistachio & Almond",
+                            NameAr = "تمور ملكية محشوة بالفستق واللوز",
+                            Price = 48.00m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
+                            Tag = "bestseller",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "500g"
+                            Weight = "500g, 1kg",
+                            WeightPrices = ""
                         },
                         new
                         {
                             Id = 13,
-                            Category = "Premium Nuts",
+                            Category = "Premium Arabic Sweets",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Premium whole cashews dry roasted to a rich buttery crunch.",
-                            DescriptionAr = "حبات كاملة بتحميص زبدي فاخر",
-                            ImageUrl = "https://images.unsplash.com/photo-1536591375315-1b836835a519?w=600&auto=format&fit=crop&q=80",
+                            Description = "Delicate golden crispy baklava layers filled with premium pistachios and pure clarified butter.",
+                            DescriptionAr = "بقلاوة وحلويات شرقية مقرمشة محشوة بالفستق والسمن الأصيل",
+                            Highlight = "",
+                            ImageUrl = "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/category/40db9c49-8070-4886-bdba-e8aab95c6686/md.webp",
                             IsAvailable = true,
-                            Name = "Roasted Cashews 500g",
-                            NameAr = "كاجو محمص 500غ",
-                            Price = 42.00m,
-                            Tag = "",
+                            Name = "Traditional Arabic Sweets Assortment",
+                            NameAr = "تشكيلة حلويات عربية وبقلاوة فاخرة",
+                            Price = 65.00m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
+                            Tag = "signature",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "500g"
+                            Weight = "500g, 1kg",
+                            WeightPrices = ""
                         },
                         new
                         {
                             Id = 14,
-                            Category = "Premium Nuts",
+                            Category = "Premium Spices",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Our house blend of roasted pistachios, cashews, almonds, and pecans with secret spices.",
-                            DescriptionAr = "خلطتنا الفاخرة من أشهى المكسرات المحمصة",
-                            ImageUrl = "https://images.unsplash.com/photo-1608686207856-001b95cf60ca?w=600&auto=format&fit=crop&q=80",
+                            Description = "Aromatic master blend of cardamom, cloves, cinnamon, and pure saffron threads.",
+                            DescriptionAr = "خلطة بهارات تراثية منتقاة بعناية لنكهة طهي عربية أصيلة",
+                            Highlight = "",
+                            ImageUrl = "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/category/da1bc9d0-9ea4-48dc-910a-a041792a41f7/md.webp",
                             IsAvailable = true,
-                            Name = "Mixed Roasted Nuts 500g",
-                            NameAr = "مكسرات مشكلة فاخرة 500غ",
-                            Price = 48.00m,
+                            Name = "Gourmet Emirati Spices & Saffron Blend",
+                            NameAr = "بهارات إماراتية وتوابل عربية فاخرة بالزعفران",
+                            Price = 35.00m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
                             Tag = "popular",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "500g"
+                            Weight = "250g, 500g",
+                            WeightPrices = ""
                         },
                         new
                         {
@@ -322,14 +418,19 @@ namespace AlRafaApi.Migrations
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Silky smooth 38% cocoa milk chocolate pralines crafted with Swiss cocoa butter.",
                             DescriptionAr = "ناعمة على الطريقة البلجيكية الفاخرة",
-                            ImageUrl = "https://images.unsplash.com/photo-1549007994-cb92caebd54b?w=600&auto=format&fit=crop&q=80",
+                            Highlight = "",
+                            ImageUrl = "/assets/products/milk-chocolate.jpg",
                             IsAvailable = true,
                             Name = "Belgian Milk Chocolate Box",
                             NameAr = "علبة شوكولاتة بالحليب",
                             Price = 35.00m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
                             Tag = "bestseller",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "350g"
+                            Weight = "350g",
+                            WeightPrices = ""
                         },
                         new
                         {
@@ -338,14 +439,19 @@ namespace AlRafaApi.Migrations
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Intense single-origin Ecuadorian dark chocolate bonbons with roasted cocoa nib sprinkles.",
                             DescriptionAr = "70% كاكاو، نكهة مركزة لعشاق الشوكولاتة الداكنة",
-                            ImageUrl = "https://images.unsplash.com/photo-1548741487-18d363dc4469?w=600&auto=format&fit=crop&q=80",
+                            Highlight = "",
+                            ImageUrl = "/assets/products/dark-chocolate.jpg",
                             IsAvailable = true,
                             Name = "Dark Chocolate Box 70%",
                             NameAr = "علبة شوكولاتة داكنة 70%",
                             Price = 38.00m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
                             Tag = "signature",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "350g"
+                            Weight = "350g",
+                            WeightPrices = ""
                         },
                         new
                         {
@@ -354,14 +460,19 @@ namespace AlRafaApi.Migrations
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Assorted artisan pralines with pistachio cream, salted caramel, hazelnut gianduja, and espresso ganache.",
                             DescriptionAr = "حشوات فاخرة مشكلة بالفستق والكراميل والبندق",
-                            ImageUrl = "https://images.unsplash.com/photo-1526081347589-7fa3cb41b4b2?w=600&auto=format&fit=crop&q=80",
+                            Highlight = "",
+                            ImageUrl = "/assets/products/filled-chocolates.jpg",
                             IsAvailable = true,
                             Name = "Filled Chocolates Luxury Box",
                             NameAr = "علبة شوكولاتة محشوة مشكلة",
                             Price = 55.00m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
                             Tag = "bestseller",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "500g"
+                            Weight = "500g",
+                            WeightPrices = ""
                         },
                         new
                         {
@@ -370,14 +481,19 @@ namespace AlRafaApi.Migrations
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Select Medjool and Khalas dates generously stuffed with roasted almonds, walnuts, and candied orange peel.",
                             DescriptionAr = "تمر فاخر محشو بالمكسرات واللوز المحمص",
-                            ImageUrl = "https://images.unsplash.com/photo-1575377427642-087cf684f29d?w=600&auto=format&fit=crop&q=80",
+                            Highlight = "",
+                            ImageUrl = "/assets/products/stuffed-dates.jpg",
                             IsAvailable = true,
                             Name = "Stuffed Dates Premium Box",
                             NameAr = "علبة تمر فاخر محشو",
                             Price = 48.00m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
                             Tag = "traditional",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "450g"
+                            Weight = "450g",
+                            WeightPrices = ""
                         },
                         new
                         {
@@ -386,14 +502,19 @@ namespace AlRafaApi.Migrations
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Succulent dates stuffed with roasted pistachio and enrobed in dark Belgian chocolate.",
                             DescriptionAr = "تمر نخب أول مغطى بالشوكولاتة البلجيكية الفاخرة",
-                            ImageUrl = "https://images.unsplash.com/photo-1606312619070-d48b4c652a52?w=600&auto=format&fit=crop&q=80",
+                            Highlight = "",
+                            ImageUrl = "/assets/products/chocolate-dates.jpg",
                             IsAvailable = true,
                             Name = "Chocolate Dipped Dates Box",
                             NameAr = "علبة تمر مغطى بالشوكولاتة",
                             Price = 52.00m,
+                            ProdImg = "",
+                            ProdVarients_Pricing = "",
+                            StockQuantity = 0,
                             Tag = "signature",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Weight = "500g"
+                            Weight = "500g",
+                            WeightPrices = ""
                         });
                 });
 

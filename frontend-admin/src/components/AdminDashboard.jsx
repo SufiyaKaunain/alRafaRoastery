@@ -1,5 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Edit, Trash2, Search, RefreshCw, Upload, Image as ImageIcon, Check, Loader2, Link as LinkIcon, Folder } from 'lucide-react';
+import {
+  Plus, Edit, Trash2, Search, RefreshCw, Upload, Image as ImageIcon, Check, Loader2,
+  Link as LinkIcon, Folder, Package, X, Tag, CheckCircle2, RotateCcw, Save, Edit3,
+  Info, UploadCloud
+} from 'lucide-react';
 import { createProduct, updateProduct, deleteProduct, uploadProductImage } from '../api';
 
 const PRESET_IMAGES = [
@@ -93,9 +97,78 @@ export default function AdminDashboard({
   const [imageTab, setImageTab] = useState('upload'); // 'upload' | 'preset' | 'url'
   const fileInputRef = useRef(null);
 
+  // Helper to parse weight variants from a product
+  const parseWeightVariantsFromProduct = (p) => {
+    const rawVariants = p?.prodVarients_Pricing || p?.ProdVarients_Pricing || p?.prodVariants_Pricing || p?.ProdVariants_Pricing || p?.weightPrices || p?.WeightPrices;
+    if (rawVariants) {
+      try {
+        const parsed = typeof rawVariants === 'string' ? JSON.parse(rawVariants) : rawVariants;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map(item => {
+            const sz = item.size || item.weight || '';
+            const sp = item.sellingPrice !== undefined ? String(item.sellingPrice) : (item.price !== undefined ? String(item.price) : '');
+            const op = item.originalPrice !== undefined && item.originalPrice !== null ? String(item.originalPrice) : '';
+            const sq = item.stockQuantity !== undefined ? String(item.stockQuantity) : (item.stock !== undefined ? String(item.stock) : '20');
+            return {
+              size: sz,
+              weight: sz,
+              sellingPrice: sp,
+              price: sp,
+              originalPrice: op,
+              stockQuantity: sq,
+              stock: sq,
+            };
+          });
+        }
+      } catch (err) {
+        console.warn('Failed to parse variants JSON:', err);
+      }
+    }
+
+    // Fallback: parse comma-separated weights if present
+    if (p?.weight) {
+      const weights = p.weight.split(',').map(w => w.trim()).filter(Boolean);
+      if (weights.length > 0) {
+        const basePrice = Number(p.price) || 35;
+        return weights.map((w, idx) => {
+          let calculated = basePrice;
+          if (idx > 0) {
+            if (w.includes('1kg') || w.includes('1000g')) calculated = basePrice * 3.4;
+            else if (w.includes('500g')) calculated = basePrice * 1.85;
+          }
+          const sPrice = calculated ? String(Math.round(calculated * 2) / 2) : '';
+          return {
+            size: w,
+            weight: w,
+            sellingPrice: sPrice,
+            price: sPrice,
+            originalPrice: '',
+            stockQuantity: idx === 0 ? '20' : (idx === 1 ? '15' : '10'),
+            stock: idx === 0 ? '20' : (idx === 1 ? '15' : '10'),
+          };
+        });
+      }
+    }
+
+    // Default weight variants matching the design screenshot
+    return [
+      { size: '250g', weight: '250g', sellingPrice: '35', price: '35', originalPrice: '', stockQuantity: '20', stock: '20' },
+      { size: '500g', weight: '500g', sellingPrice: '65', price: '65', originalPrice: '', stockQuantity: '15', stock: '15' },
+      { size: '1kg', weight: '1kg', sellingPrice: '120', price: '120', originalPrice: '', stockQuantity: '10', stock: '10' },
+    ];
+  };
+
+  const initialWeightVariants = [
+    { size: '250g', weight: '250g', sellingPrice: '35', price: '35', originalPrice: '', stockQuantity: '20', stock: '20' },
+    { size: '500g', weight: '500g', sellingPrice: '65', price: '65', originalPrice: '', stockQuantity: '15', stock: '15' },
+    { size: '1kg', weight: '1kg', sellingPrice: '120', price: '120', originalPrice: '', stockQuantity: '10', stock: '10' },
+  ];
+
+  const [weightVariants, setWeightVariants] = useState(initialWeightVariants);
+
   const initialForm = {
     name: '', nameAr: '', description: '', descriptionAr: '',
-    price: '', category: 'Luxury Chocolates', weight: '250g',
+    price: '35', category: 'Premium Chocolates', weight: '250g, 500g, 1kg',
     imageUrl: PRESET_IMAGES[0].url, tag: '', isAvailable: true,
   };
   const [form, setForm] = useState(initialForm);
@@ -147,40 +220,205 @@ export default function AdminDashboard({
     return matchSearch && (selectedCategory === 'ALL' || p.category === selectedCategory);
   });
 
-  const openAddModal = () => { setEditingProduct(null); setForm(initialForm); setIsModalOpen(true); };
+  const openAddModal = () => {
+    setEditingProduct(null);
+    setForm(initialForm);
+    setWeightVariants(initialWeightVariants);
+    setIsModalOpen(true);
+  };
+
   const openEditModal = (p) => {
     setEditingProduct(p);
+    const parsedVariants = parseWeightVariantsFromProduct(p);
+    setWeightVariants(parsedVariants);
+    const imageVal = p.prodImg || p.ProdImg || p.imageUrl || p.ImageUrl || '';
+    const highlightVal = p.highlight || p.Highlight || p.tag || p.Tag || '';
     setForm({
-      name: p.name || '', nameAr: p.nameAr || '',
-      description: p.description || '', descriptionAr: p.descriptionAr || '',
-      price: p.price || '', category: p.category || 'Luxury Chocolates',
-      weight: p.weight || '', imageUrl: p.imageUrl || '',
-      tag: p.tag || '', isAvailable: p.isAvailable ?? true,
+      name: p.name || p.Name || '',
+      nameAr: p.nameAr || p.NameAr || '',
+      description: p.description || p.Description || '',
+      descriptionAr: p.descriptionAr || p.DescriptionAr || '',
+      price: parsedVariants[0]?.sellingPrice || parsedVariants[0]?.price || p.price || p.Price || '',
+      category: p.category || p.Category || 'Premium Chocolates',
+      weight: p.weight || p.Weight || parsedVariants.map(v => v.size || v.weight).join(', '),
+      imageUrl: imageVal,
+      tag: highlightVal,
+      isAvailable: p.isAvailable ?? p.IsAvailable ?? true,
     });
     setIsModalOpen(true);
+  };
+
+  const handleAddVariant = () => {
+    setWeightVariants(prev => [
+      ...prev,
+      { size: '', weight: '', sellingPrice: '', price: '', originalPrice: '', stockQuantity: '10', stock: '10' }
+    ]);
+  };
+
+  const handleAddCustomSize = () => {
+    setWeightVariants(prev => [
+      ...prev,
+      { size: '', weight: '', sellingPrice: '', price: '', originalPrice: '', stockQuantity: '10', stock: '10' }
+    ]);
+    showToast('New variant row added. Enter custom size, prices and stock.', 'info');
+  };
+
+  const handleReset = () => {
+    setForm(initialForm);
+    setWeightVariants([
+      { size: '250g', weight: '250g', sellingPrice: '35', price: '35', originalPrice: '', stockQuantity: '20', stock: '20' },
+      { size: '500g', weight: '500g', sellingPrice: '65', price: '65', originalPrice: '', stockQuantity: '15', stock: '15' },
+      { size: '1kg', weight: '1kg', sellingPrice: '120', price: '120', originalPrice: '', stockQuantity: '10', stock: '10' },
+    ]);
+    showToast('Form reset to defaults', 'info');
+  };
+
+  const handleQuickAddVariant = (weightLabel) => {
+    // If already exists, notify user
+    const existingIdx = weightVariants.findIndex(v => (v.size || v.weight || '').toLowerCase() === weightLabel.toLowerCase());
+    if (existingIdx !== -1) {
+      showToast(`${weightLabel} is already in the variants table`, 'info');
+      return;
+    }
+    const lastPrice = weightVariants[weightVariants.length - 1]?.sellingPrice || weightVariants[weightVariants.length - 1]?.price || form.price || '35';
+    let suggestedPrice = lastPrice;
+    if (weightLabel.includes('1kg')) suggestedPrice = String(Number(lastPrice) * 2 || 120);
+    else if (weightLabel.includes('500g')) suggestedPrice = String(Number(lastPrice) * 1.5 || 65);
+    else if (weightLabel.includes('250g')) suggestedPrice = String(Number(lastPrice) * 0.7 || 35);
+
+    setWeightVariants(prev => [
+      ...prev,
+      {
+        size: weightLabel,
+        weight: weightLabel,
+        sellingPrice: suggestedPrice,
+        price: suggestedPrice,
+        originalPrice: '',
+        stockQuantity: '20',
+        stock: '20',
+      }
+    ]);
+  };
+
+  const handleRemoveVariant = (index) => {
+    if (weightVariants.length <= 1) {
+      showToast('At least one variant option is required', 'error');
+      return;
+    }
+    setWeightVariants(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateVariant = (index, field, value) => {
+    setWeightVariants(prev => {
+      const updated = [...prev];
+      const cur = { ...updated[index], [field]: value };
+      if (field === 'size') cur.weight = value;
+      if (field === 'weight') cur.size = value;
+      if (field === 'sellingPrice') cur.price = value;
+      if (field === 'price') cur.sellingPrice = value;
+      if (field === 'stockQuantity') cur.stock = value;
+      if (field === 'stock') cur.stockQuantity = value;
+      updated[index] = cur;
+      return updated;
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) { showToast('Product name is required', 'error'); return; }
-    if (!form.price || isNaN(form.price) || Number(form.price) <= 0) {
-      showToast('Please enter a valid price in AED', 'error'); return;
+
+    const validVariants = weightVariants.filter(v => (v.size || v.weight) && (v.size || v.weight).trim());
+    if (validVariants.length === 0) {
+      showToast('Please add at least one product variant with its price and stock', 'error');
+      return;
     }
+
+    // Ensure all variants have a valid selling price
+    for (const v of validVariants) {
+      const p = v.sellingPrice || v.price;
+      if (!p || isNaN(p) || Number(p) <= 0) {
+        showToast(`Please enter a valid selling price for "${v.size || v.weight}"`, 'error');
+        return;
+      }
+    }
+
+    const basePrice = parseFloat(validVariants[0].sellingPrice || validVariants[0].price);
+    const baseOriginalPrice = validVariants[0].originalPrice ? parseFloat(validVariants[0].originalPrice) : null;
+    const totalStock = validVariants.reduce((sum, v) => sum + (parseInt(v.stockQuantity || v.stock) || 0), 0);
+
+    const variantsPayload = validVariants.map(v => ({
+      size: (v.size || v.weight || '').trim(),
+      weight: (v.weight || v.size || '').trim(),
+      sellingPrice: parseFloat(v.sellingPrice || v.price),
+      price: parseFloat(v.price || v.sellingPrice),
+      originalPrice: v.originalPrice ? parseFloat(v.originalPrice) : null,
+      stockQuantity: parseInt(v.stockQuantity || v.stock) || 0,
+      stock: parseInt(v.stock || v.stockQuantity) || 0,
+    }));
+
     setIsSaving(true);
     try {
+      const variantsJson = JSON.stringify(variantsPayload);
+      const chosenImg = form.imageUrl.trim() || PRESET_IMAGES[0].url;
+      const chosenTag = form.tag.trim();
+      const weightSummary = validVariants.map(v => (v.size || v.weight).trim()).join(', ');
+
       const payload = {
-        name: form.name.trim(), nameAr: form.nameAr.trim(),
-        description: form.description.trim(), descriptionAr: form.descriptionAr.trim(),
-        price: parseFloat(form.price), category: form.category.trim(),
-        weight: form.weight.trim(), imageUrl: form.imageUrl.trim() || PRESET_IMAGES[0].url,
-        tag: form.tag.trim(), isAvailable: Boolean(form.isAvailable),
+        // Name & NameAr
+        name: form.name.trim(),
+        Name: form.name.trim(),
+        nameAr: form.nameAr.trim(),
+        NameAr: form.nameAr.trim(),
+
+        // Category
+        category: form.category.trim(),
+        Category: form.category.trim(),
+
+        // ProdVarients_Pricing
+        prodVarients_Pricing: variantsJson,
+        ProdVarients_Pricing: variantsJson,
+        prodVariants_Pricing: variantsJson,
+        ProdVariants_Pricing: variantsJson,
+        weightPrices: variantsJson,
+        WeightPrices: variantsJson,
+
+        // ProdImg
+        prodImg: chosenImg,
+        ProdImg: chosenImg,
+        imageUrl: chosenImg,
+        ImageUrl: chosenImg,
+
+        // Highlight
+        highlight: chosenTag,
+        Highlight: chosenTag,
+        tag: chosenTag,
+        Tag: chosenTag,
+
+        // Description & DescriptionAr
+        description: form.description.trim(),
+        Description: form.description.trim(),
+        descriptionAr: form.descriptionAr.trim(),
+        DescriptionAr: form.descriptionAr.trim(),
+
+        // Additional pricing and stock details
+        price: basePrice,
+        Price: basePrice,
+        originalPrice: baseOriginalPrice,
+        OriginalPrice: baseOriginalPrice,
+        stockQuantity: totalStock,
+        StockQuantity: totalStock,
+        weight: weightSummary,
+        Weight: weightSummary,
+        isAvailable: Boolean(form.isAvailable),
+        IsAvailable: Boolean(form.isAvailable),
       };
+
       if (editingProduct) {
         await updateProduct(editingProduct.id, payload);
-        showToast(`"${payload.name}" updated!`, 'success');
+        showToast(`"${payload.name}" updated with ${validVariants.length} variants in database!`, 'success');
       } else {
         await createProduct(payload);
-        showToast(`"${payload.name}" added to database!`, 'success');
+        showToast(`"${payload.name}" added with all details & variants to database!`, 'success');
       }
       setIsModalOpen(false);
       onRefresh();
@@ -205,6 +443,52 @@ export default function AdminDashboard({
     } catch (err) {
       showToast(`Failed to delete: ${err.message}`, 'error');
     }
+  };
+
+  const renderWeightPriceBadges = (p) => {
+    if (p?.weightPrices) {
+      try {
+        const variants = typeof p.weightPrices === 'string' ? JSON.parse(p.weightPrices) : p.weightPrices;
+        if (Array.isArray(variants) && variants.length > 0) {
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {variants.map((v, i) => (
+                <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{
+                    padding: '2px 7px',
+                    borderRadius: '4px',
+                    background: '#35251B',
+                    border: '1px solid #35251B',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    color: '#ffffff',
+                  }}>
+                    {v.size || v.weight}
+                  </span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#C89B6A' }}>
+                    AED {Number(v.sellingPrice || v.price || 0).toFixed(2)}
+                  </span>
+                  {(v.stockQuantity !== undefined || v.stock !== undefined) && (
+                    <span style={{ fontSize: '0.7rem', color: t.textMuted }}>
+                      ({v.stockQuantity ?? v.stock} left)
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          );
+        }
+      } catch (err) {
+        console.warn('Error parsing product weightPrices:', err);
+      }
+    }
+
+    return (
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+        <span style={{ color: t.textFaint, fontSize: '0.82rem' }}>{p.weight || 'Standard'}</span>
+        <span style={{ fontWeight: 700, color: '#C89B6A', fontSize: '0.88rem' }}>AED {Number(p.price).toFixed(2)}</span>
+      </div>
+    );
   };
 
   /* shared input style */
@@ -256,7 +540,7 @@ export default function AdminDashboard({
               display: 'inline-flex', alignItems: 'center', gap: '6px',
               padding: '9px 20px', borderRadius: '9999px',
               background: 'linear-gradient(135deg,#C89B6A,#A87747)',
-              border: 'none', color: '#1B120C',
+              border: 'none', color: '#35251B',
               fontWeight: 700, fontSize: '0.88rem', cursor: 'pointer',
               boxShadow: '0 4px 14px rgba(200,155,106,0.3)',
             }}
@@ -299,7 +583,7 @@ export default function AdminDashboard({
                   padding: '6px 14px', borderRadius: '9999px',
                   border: `1px solid ${active ? '#C89B6A' : (lightMode ? '#d1d5db' : 'var(--border-gold)')}`,
                   background: active ? '#C89B6A' : (lightMode ? '#f9fafb' : 'transparent'),
-                  color: active ? '#1B120C' : t.textMuted,
+                  color: active ? '#35251B' : t.textMuted,
                   fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
                   transition: 'all 0.18s',
                 }}
@@ -327,8 +611,8 @@ export default function AdminDashboard({
               fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.07em',
               borderBottom: `1px solid ${t.border}`,
             }}>
-              {['Product', 'Category', 'Weight', 'Price (AED)', 'Status', 'Actions'].map((h, i) => (
-                <th key={h} style={{ padding: '14px 20px', textAlign: i === 5 ? 'right' : 'left', fontWeight: 700 }}>
+              {['Product', 'Category', 'Weight & Prices (AED)', 'Status', 'Actions'].map((h, i) => (
+                <th key={h} style={{ padding: '14px 20px', textAlign: i === 4 ? 'right' : 'left', fontWeight: 700 }}>
                   {h}
                 </th>
               ))}
@@ -370,11 +654,9 @@ export default function AdminDashboard({
                 </td>
                 {/* Category */}
                 <td style={{ padding: '14px 20px', color: t.textMuted, fontSize: '0.88rem' }}>{p.category}</td>
-                {/* Weight */}
-                <td style={{ padding: '14px 20px', color: t.textFaint, fontSize: '0.85rem' }}>{p.weight || '—'}</td>
-                {/* Price */}
-                <td style={{ padding: '14px 20px', fontWeight: 700, color: '#C89B6A', fontSize: '0.92rem' }}>
-                  {Number(p.price).toFixed(2)}
+                {/* Weight & Prices */}
+                <td style={{ padding: '14px 20px' }}>
+                  {renderWeightPriceBadges(p)}
                 </td>
                 {/* Status */}
                 <td style={{ padding: '14px 20px' }}>
@@ -454,372 +736,942 @@ export default function AdminDashboard({
       {isModalOpen && (
         <div style={{
           position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)',
+          background: 'rgba(53, 37, 27, 0.72)', backdropFilter: 'blur(6px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 200, padding: '20px',
         }}>
           <div style={{
-            width: '100%', maxWidth: '660px', maxHeight: '92vh', overflowY: 'auto',
-            background: t.modalBg, border: `1px solid ${t.modalBorder}`,
-            borderRadius: '20px', padding: '32px',
-            boxShadow: '0 24px 80px rgba(0,0,0,0.4)',
+            width: '100%', maxWidth: '840px', maxHeight: '92vh',
+            display: 'flex', flexDirection: 'column',
+            background: '#FFFFFF',
+            borderRadius: '16px',
+            boxShadow: '0 25px 60px -15px rgba(53, 37, 27, 0.5)',
+            border: '1px solid #E2E8F0',
+            overflow: 'hidden',
           }}>
             {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <div>
-                <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: t.textPrimary }}>
+            <div style={{
+              background: '#35251B',
+              color: '#FFFFFF',
+              padding: '16px 24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: '1px solid rgba(200, 155, 106, 0.25)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '38px', height: '38px', borderRadius: '10px',
+                  background: 'rgba(200, 155, 106, 0.15)',
+                  border: '1px solid rgba(200, 155, 106, 0.35)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#C89B6A',
+                }}>
+                  <Package size={22} strokeWidth={2.2} />
+                </div>
+                <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
                   {editingProduct ? 'Edit Product' : 'Add New Product'}
                 </h2>
-                <p style={{ color: t.textMuted, fontSize: '0.83rem', marginTop: '2px' }}>
-                  {editingProduct ? 'Update the product details below.' : 'Fill in the product details to add to PostgreSQL.'}
-                </p>
               </div>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
                 style={{
-                  width: '32px', height: '32px', borderRadius: '8px',
-                  background: lightMode ? '#f3f4f6' : 'rgba(255,255,255,0.1)',
-                  border: 'none', color: t.textMuted, cursor: 'pointer',
-                  fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: '32px', height: '32px', borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.12)',
+                  border: 'none', color: '#FFFFFF', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'background 0.15s ease',
                 }}
-              >✕</button>
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+              >
+                <X size={17} />
+              </button>
             </div>
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              {/* Names */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                <div>
-                  <label style={labelStyle}>Product Name (EN) *</label>
-                  <input type="text" required value={form.name}
-                    onChange={e => setForm({ ...form, name: e.target.value })}
-                    placeholder="e.g. Belgian Milk Chocolate Box" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>اسم المنتج (Arabic)</label>
-                  <input type="text" dir="rtl" value={form.nameAr}
-                    onChange={e => setForm({ ...form, nameAr: e.target.value })}
-                    placeholder="مثال: علبة شوكولاتة بالحليب"
-                    style={{ ...inputStyle, fontFamily: 'var(--font-arabic)' }} />
-                </div>
-              </div>
-
-              {/* Category / Price / Weight */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
-                <div>
-                  <label style={labelStyle}>Category *</label>
-                  <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} style={selectStyle}>
-                    <option>Luxury Chocolates</option>
-                    <option>Specialty Drinks</option>
-                    <option>Coffee Beans</option>
-                    <option>Premium Nuts</option>
-                    <option>Dates &amp; Confections</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>Price (AED) *</label>
-                  <input type="number" step="0.5" required value={form.price}
-                    onChange={e => setForm({ ...form, price: e.target.value })}
-                    placeholder="35.00" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Weight / Size</label>
-                  <input type="text" value={form.weight}
-                    onChange={e => setForm({ ...form, weight: e.target.value })}
-                    placeholder="250g / 500ml" style={inputStyle} />
-                </div>
-              </div>
-
-              {/* Product Image Section */}
+            {/* Modal Body */}
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
               <div style={{
-                background: lightMode ? '#f9fafb' : 'rgba(255,255,255,0.02)',
-                border: `1px solid ${t.border}`,
-                borderRadius: '12px',
-                padding: '16px',
+                padding: '24px 28px',
+                overflowY: 'auto',
+                flex: 1,
+                background: '#FFFFFF',
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <label style={{ ...labelStyle, marginBottom: 0 }}>Product Image *</label>
-                  
-                  {/* Mode switcher */}
-                  <div style={{ display: 'inline-flex', gap: '4px', background: lightMode ? '#e5e7eb' : 'rgba(255,255,255,0.06)', padding: '3px', borderRadius: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setImageTab('upload')}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '4px',
-                        padding: '4px 10px', borderRadius: '6px', border: 'none',
-                        background: imageTab === 'upload' ? '#C89B6A' : 'transparent',
-                        color: imageTab === 'upload' ? '#1B120C' : t.textMuted,
-                        fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
-                      }}
-                    >
-                      <Upload size={13} /> Upload File
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setImageTab('preset')}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '4px',
-                        padding: '4px 10px', borderRadius: '6px', border: 'none',
-                        background: imageTab === 'preset' ? '#C89B6A' : 'transparent',
-                        color: imageTab === 'preset' ? '#1B120C' : t.textMuted,
-                        fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
-                      }}
-                    >
-                      <Folder size={13} /> Assets Folder
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setImageTab('url')}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '4px',
-                        padding: '4px 10px', borderRadius: '6px', border: 'none',
-                        background: imageTab === 'url' ? '#C89B6A' : 'transparent',
-                        color: imageTab === 'url' ? '#1B120C' : t.textMuted,
-                        fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
-                      }}
-                    >
-                      <LinkIcon size={13} /> Direct URL
-                    </button>
-                  </div>
-                </div>
 
-                {/* Tab 1: Upload File */}
-                {imageTab === 'upload' && (
+                {/* Product Name (EN) & (Arabic) */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '18px' }}>
                   <div>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileSelect}
-                      accept="image/*"
-                      style={{ display: 'none' }}
-                    />
-                    <div
-                      onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
-                      onDrop={handleDrop}
-                      onClick={() => fileInputRef.current?.click()}
-                      style={{
-                        border: `2px dashed ${isUploadingImage ? '#C89B6A' : (lightMode ? '#d1d5db' : 'rgba(200,155,106,0.35)')}`,
-                        borderRadius: '10px',
-                        padding: '20px',
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                        background: lightMode ? '#ffffff' : 'rgba(255,255,255,0.02)',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      {isUploadingImage ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: '#C89B6A' }}>
-                          <Loader2 size={28} className="animate-spin" />
-                          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Saving image to assets/products folder...</span>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                          <div style={{
-                            width: '40px', height: '40px', borderRadius: '50%',
-                            background: 'rgba(200,155,106,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: '#C89B6A', marginBottom: '2px',
-                          }}>
-                            <Upload size={20} />
-                          </div>
-                          <div style={{ fontSize: '0.88rem', fontWeight: 700, color: t.textPrimary }}>
-                            Click to upload or drag &amp; drop product image
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: t.textMuted }}>
-                            PNG, JPG, WEBP, SVG up to 10MB • Saved directly to dashboard assets folder
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Tab 2: Assets Folder Presets */}
-                {imageTab === 'preset' && (
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: t.textMuted, marginBottom: '8px' }}>
-                      Choose an authentic roastery image saved in <code style={{ color: '#C89B6A' }}>assets/products</code>:
-                    </div>
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-                      gap: '8px',
-                      maxHeight: '160px',
-                      overflowY: 'auto',
-                      padding: '4px',
-                    }}>
-                      {PRESET_IMAGES.map(img => {
-                        const isSelected = form.imageUrl === img.url;
-                        return (
-                          <div
-                            key={img.label}
-                            onClick={() => setForm({ ...form, imageUrl: img.url })}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              padding: '6px 8px',
-                              borderRadius: '8px',
-                              cursor: 'pointer',
-                              border: `1px solid ${isSelected ? '#C89B6A' : t.border}`,
-                              background: isSelected ? (lightMode ? '#fff8f0' : 'rgba(200,155,106,0.15)') : (lightMode ? '#ffffff' : 'transparent'),
-                              transition: 'all 0.15s ease',
-                            }}
-                          >
-                            <img
-                              src={img.url}
-                              alt={img.label}
-                              style={{ width: '28px', height: '28px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }}
-                              onError={e => { e.currentTarget.src = '/logo-circle.png'; }}
-                            />
-                            <span style={{
-                              fontSize: '0.75rem',
-                              fontWeight: isSelected ? 700 : 500,
-                              color: isSelected ? '#C89B6A' : t.textPrimary,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              flex: 1,
-                            }}>
-                              {img.label}
-                            </span>
-                            {isSelected && <Check size={14} color="#C89B6A" style={{ flexShrink: 0 }} />}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Tab 3: Direct URL */}
-                {imageTab === 'url' && (
-                  <div>
+                    <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>
+                      Product Name (EN) <span style={{ color: '#EF4444' }}>*</span>
+                    </label>
                     <input
                       type="text"
-                      value={form.imageUrl}
-                      onChange={e => setForm({ ...form, imageUrl: e.target.value })}
-                      placeholder="e.g. /assets/products/my-image.jpg or https://..."
-                      style={inputStyle}
+                      required
+                      value={form.name}
+                      onChange={e => setForm({ ...form, name: e.target.value })}
+                      placeholder="e.g. Belgian Milk Chocolate Box"
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid #CBD5E1',
+                        background: '#FFFFFF',
+                        color: '#0F172A',
+                        fontSize: '0.9rem',
+                        fontWeight: 500,
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
                     />
-                    <div style={{ fontSize: '0.72rem', color: t.textFaint, marginTop: '4px' }}>
-                      Can be a relative assets path (e.g. /assets/products/item.jpg) or full web URL.
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+                      <label style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0F172A', fontFamily: 'var(--font-arabic)' }}>
+                        <span style={{ color: '#EF4444' }}>* </span>(Arabic) اسم المنتج
+                      </label>
+                    </div>
+                    <input
+                      type="text"
+                      dir="rtl"
+                      value={form.nameAr}
+                      onChange={e => setForm({ ...form, nameAr: e.target.value })}
+                      placeholder="مثال: علبة شوكولاتة بالحليب"
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid #CBD5E1',
+                        background: '#FFFFFF',
+                        color: '#0F172A',
+                        fontSize: '0.9rem',
+                        fontWeight: 500,
+                        outline: 'none',
+                        fontFamily: 'var(--font-arabic)',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Category */}
+                <div style={{ marginBottom: '22px' }}>
+                  <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>
+                    Category <span style={{ color: '#EF4444' }}>*</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      value={form.category}
+                      onChange={e => setForm({ ...form, category: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid #CBD5E1',
+                        background: '#FFFFFF',
+                        color: '#0F172A',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        outline: 'none',
+                        appearance: 'none',
+                        cursor: 'pointer',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <option value="Premium Chocolates">🍫  Premium Chocolates</option>
+                      <option value="Premium Nuts & Dry Fruits">🥜  Premium Nuts &amp; Dry Fruits</option>
+                      <option value="Arabic & Gulf Heritage Roasts">☕  Arabic &amp; Gulf Heritage Roasts</option>
+                      <option value="African Single Origin Roasts">🌍  African Single Origin Roasts</option>
+                      <option value="Turkish Specialty Roasts">🇹🇷  Turkish Specialty Roasts</option>
+                      <option value="Premium Dates">🌴  Premium Dates</option>
+                      <option value="Premium Arabic Sweets">🍬  Premium Arabic Sweets</option>
+                      <option value="Premium Spices">🌿  Premium Spices</option>
+                    </select>
+                    <div style={{
+                      position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
+                      pointerEvents: 'none', color: '#0F172A', display: 'flex', alignItems: 'center',
+                    }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </div>
                   </div>
-                )}
+                </div>
 
-                {/* Current Selected Image Preview */}
-                {form.imageUrl && (
+                {/* ── Product Variants & Pricing Card ── */}
+                <div style={{
+                  background: '#FAF7F2',
+                  border: '1px solid #E8DFD8',
+                  borderRadius: '16px',
+                  padding: '20px',
+                  marginBottom: '22px',
+                }}>
+                  {/* Card Header */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '16px' }}>
+                    <div style={{
+                      width: '42px', height: '42px', borderRadius: '50%',
+                      background: '#35251B', color: '#C89B6A',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <Tag size={20} strokeWidth={2.2} />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#35251B', margin: 0 }}>
+                          Product Variants &amp; Pricing
+                        </h3>
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '4px',
+                          background: '#DCFCE7', color: '#15803D',
+                          padding: '3px 10px', borderRadius: '9999px',
+                          fontSize: '0.74rem', fontWeight: 700,
+                        }}>
+                          <Check size={12} strokeWidth={3} /> Recommended
+                        </span>
+                      </div>
+                      <p style={{ margin: '3px 0 0 0', color: '#6E5D53', fontSize: '0.82rem' }}>
+                        Add different sizes or weights and set individual prices for each variant.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Quick Add Sizes Row */}
                   <div style={{
-                    marginTop: '12px',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    background: lightMode ? '#ffffff' : 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${t.border}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    gap: '12px',
+                    gap: '10px',
+                    flexWrap: 'wrap',
+                    marginBottom: '16px',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                      <img
-                        src={form.imageUrl}
-                        alt="Selected Preview"
-                        style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: `1px solid ${t.border}` }}
-                        onError={e => { e.currentTarget.src = '/logo-circle.png'; }}
-                      />
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: t.textPrimary }}>
-                          Selected Image Path:
-                        </div>
-                        <div style={{
-                          fontSize: '0.74rem',
-                          color: '#C89B6A',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          fontFamily: 'monospace',
-                        }}>
-                          {form.imageUrl}
-                        </div>
-                      </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#35251B' }}>
+                        Quick Add Sizes:
+                      </span>
+                      {[].map((w, idx) => {
+                        const isFirst = idx === 0;
+                        return (
+                          <button
+                            key={`first-${w}-${idx}`}
+                            type="button"
+                            onClick={() => handleQuickAddVariant(w)}
+                            style={{
+                              padding: '6px 18px',
+                              borderRadius: '9999px',
+                              background: isFirst ? '#35251B' : '#FFFFFF',
+                              color: isFirst ? '#FFFFFF' : '#35251B',
+                              border: isFirst ? '1px solid #35251B' : '1px solid #CBD5E1',
+                              fontSize: '0.82rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            {w}
+                          </button>
+                        );
+                      })}
+                      {['250g', '500g', '1kg'].map((w, idx) => (
+                        <button
+                          key={`second-${w}-${idx}`}
+                          type="button"
+                          onClick={() => handleQuickAddVariant(w)}
+                          style={{
+                            padding: '6px 18px',
+                            borderRadius: '9999px',
+                            background: '#FFFFFF',
+                            color: '#35251B',
+                            border: '1px solid #CBD5E1',
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {w}
+                        </button>
+                      ))}
                     </div>
                     <button
                       type="button"
-                      onClick={() => setForm({ ...form, imageUrl: '' })}
+                      onClick={handleAddCustomSize}
                       style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        background: lightMode ? '#fee2e2' : 'rgba(239,68,68,0.15)',
-                        color: '#dc2626',
-                        fontSize: '0.72rem',
-                        fontWeight: 600,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        background: '#FFFFFF',
+                        border: '1px solid #35251B',
+                        color: '#35251B',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
                         cursor: 'pointer',
-                        flexShrink: 0,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                       }}
                     >
-                      Clear
+                      <Edit3 size={14} /> Custom Size
                     </button>
                   </div>
-                )}
-              </div>
 
-              {/* Tag & Availability */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                <div>
-                  <label style={labelStyle}>Highlight Tag</label>
-                  <select value={form.tag} onChange={e => setForm({ ...form, tag: e.target.value })} style={selectStyle}>
-                    <option value="">None</option>
-                    <option value="bestseller">Bestseller</option>
-                    <option value="signature">Signature</option>
-                    <option value="popular">Popular</option>
-                    <option value="traditional">Traditional</option>
-                  </select>
+                  {/* Variants Table */}
+                  <div style={{
+                    border: '1px solid #E8DFD8',
+                    borderRadius: '10px',
+                    overflow: 'hidden',
+                    background: '#FFFFFF',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                  }}>
+                    {/* Table Header with #35251B */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1.2fr 1.3fr 1.3fr 1.1fr 70px',
+                      background: '#35251B',
+                      color: '#FFFFFF',
+                      padding: '12px 16px',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      alignItems: 'center',
+                    }}>
+                      <div>Size / Weight</div>
+                      <div>Selling Price (AED) *</div>
+                      <div>Original Price (AED)</div>
+                      <div>Stock Quantity *</div>
+                      <div style={{ textAlign: 'center' }}>Actions</div>
+                    </div>
+
+                    {/* Table Rows */}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      {weightVariants.map((item, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1.2fr 1.3fr 1.3fr 1.1fr 70px',
+                            padding: '10px 16px',
+                            alignItems: 'center',
+                            gap: '12px',
+                            borderBottom: idx === weightVariants.length - 1 ? 'none' : '1px solid #F1F5F9',
+                            background: idx % 2 === 0 ? '#FFFFFF' : '#FAFAFA',
+                          }}
+                        >
+                          <input
+                            type="text"
+                            required
+                            value={item.size || item.weight}
+                            onChange={e => handleUpdateVariant(idx, 'size', e.target.value)}
+                            placeholder="e.g. 250g"
+                            style={{
+                              width: '100%',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              border: '1px solid #CBD5E1',
+                              background: '#F8FAFC',
+                              color: '#35251B',
+                              fontSize: '0.88rem',
+                              fontWeight: 500,
+                              outline: 'none',
+                              boxSizing: 'border-box',
+                            }}
+                          />
+                          <input
+                            type="number"
+                            step="0.5"
+                            required
+                            value={item.sellingPrice || item.price}
+                            onChange={e => handleUpdateVariant(idx, 'sellingPrice', e.target.value)}
+                            placeholder="35"
+                            style={{
+                              width: '100%',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              border: '1px solid #CBD5E1',
+                              background: '#F8FAFC',
+                              color: '#35251B',
+                              fontSize: '0.88rem',
+                              fontWeight: 500,
+                              outline: 'none',
+                              boxSizing: 'border-box',
+                            }}
+                          />
+                          <input
+                            type="number"
+                            step="0.5"
+                            value={item.originalPrice}
+                            onChange={e => handleUpdateVariant(idx, 'originalPrice', e.target.value)}
+                            placeholder="Optional"
+                            style={{
+                              width: '100%',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              border: '1px solid #CBD5E1',
+                              background: '#F8FAFC',
+                              color: '#35251B',
+                              fontSize: '0.88rem',
+                              fontWeight: 500,
+                              outline: 'none',
+                              boxSizing: 'border-box',
+                            }}
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            required
+                            value={item.stockQuantity ?? item.stock ?? '20'}
+                            onChange={e => handleUpdateVariant(idx, 'stockQuantity', e.target.value)}
+                            placeholder="20"
+                            style={{
+                              width: '100%',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              border: '1px solid #CBD5E1',
+                              background: '#F8FAFC',
+                              color: '#35251B',
+                              fontSize: '0.88rem',
+                              fontWeight: 500,
+                              outline: 'none',
+                              boxSizing: 'border-box',
+                            }}
+                          />
+                          <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveVariant(idx)}
+                              disabled={weightVariants.length <= 1}
+                              style={{
+                                width: '36px', height: '36px', borderRadius: '8px',
+                                background: '#FEE2E2', border: '1px solid #FECACA',
+                                color: '#EF4444',
+                                cursor: weightVariants.length <= 1 ? 'not-allowed' : 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                opacity: weightVariants.length <= 1 ? 0.35 : 1,
+                              }}
+                              title="Delete variant"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Add Another Variant Button */}
+                  <button
+                    type="button"
+                    onClick={handleAddVariant}
+                    style={{
+                      width: '100%',
+                      padding: '11px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #35251B',
+                      background: '#FFFFFF',
+                      color: '#35251B',
+                      fontSize: '0.88rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      marginTop: '12px',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#FAF7F2'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
+                  >
+                    <Plus size={16} strokeWidth={2.5} /> Add Another Variant
+                  </button>
+
+                  {/* Info Note */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    background: '#F5EBE1',
+                    border: '1px solid #DEC3AE',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    marginTop: '12px',
+                  }}>
+                    <div style={{
+                      width: '20px', height: '20px', borderRadius: '50%',
+                      background: '#C89B6A', color: '#35251B',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '0.75rem', fontWeight: 800, flexShrink: 0,
+                    }}>
+                      i
+                    </div>
+                    <span style={{ fontSize: '0.82rem', color: '#5C381E', fontWeight: 600 }}>
+                      You can add multiple sizes like 250g, 500g, 1kg, etc. Each size can have its own price and stock.
+                    </span>
+                  </div>
+
+                  {/* Variant Summary */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: '#FAF7F2',
+                    border: '1px solid #E8DFD8',
+                    borderRadius: '10px',
+                    padding: '10px 16px',
+                    marginTop: '12px',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '0.84rem', color: '#35251B' }}>
+                        <Tag size={15} color="#C89B6A" />
+                        <span>Variant Summary:</span>
+                      </div>
+                      <span style={{ color: '#C89B6A' }}>|</span>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#35251B' }}>
+                        {weightVariants.filter(v => (v.size || v.weight)).length} Variants Added
+                      </span>
+                      {weightVariants.filter(v => (v.size || v.weight)).map((v, i) => (
+                        <React.Fragment key={i}>
+                          <span style={{ color: '#DEC3AE' }}>|</span>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#35251B' }}>
+                            {v.size || v.weight} - AED {Number(v.sellingPrice || v.price || 0).toFixed(0)}
+                          </span>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                    <div style={{
+                      width: '22px', height: '22px', borderRadius: '50%',
+                      background: '#22C55E', color: '#FFFFFF',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <Check size={14} strokeWidth={3} />
+                    </div>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '26px' }}>
-                  <input type="checkbox" id="isAvail" checked={form.isAvailable}
-                    onChange={e => setForm({ ...form, isAvailable: e.target.checked })}
-                    style={{ width: '18px', height: '18px', accentColor: '#C89B6A', cursor: 'pointer' }} />
-                  <label htmlFor="isAvail" style={{ fontSize: '0.9rem', color: t.textPrimary, cursor: 'pointer', fontWeight: 600 }}>
-                    Available in Store
+
+                {/* ── Product Image Section ── */}
+                <div style={{
+                  background: '#FFFFFF',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '14px',
+                  padding: '18px',
+                  marginBottom: '20px',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <ImageIcon size={18} color="#35251B" />
+                      <label style={{ fontSize: '0.88rem', fontWeight: 700, color: '#35251B', margin: 0 }}>
+                        Product Image <span style={{ color: '#EF4444' }}>*</span>
+                      </label>
+                    </div>
+
+                    {/* Mode switcher tabs */}
+                    <div style={{ display: 'inline-flex', gap: '6px', background: '#FAF7F2', padding: '4px', borderRadius: '8px', border: '1px solid #E8DFD8' }}>
+                      <button
+                        type="button"
+                        onClick={() => setImageTab('upload')}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '6px',
+                          padding: '6px 14px', borderRadius: '6px', border: 'none',
+                          background: imageTab === 'upload' ? '#35251B' : 'transparent',
+                          color: imageTab === 'upload' ? '#FFFFFF' : '#6E5D53',
+                          fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <Upload size={14} /> Upload File
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setImageTab('preset')}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '6px',
+                          padding: '6px 14px', borderRadius: '6px', border: 'none',
+                          background: imageTab === 'preset' ? '#35251B' : 'transparent',
+                          color: imageTab === 'preset' ? '#FFFFFF' : '#6E5D53',
+                          fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <Folder size={14} /> Assets Folder
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setImageTab('url')}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '6px',
+                          padding: '6px 14px', borderRadius: '6px', border: 'none',
+                          background: imageTab === 'url' ? '#35251B' : 'transparent',
+                          color: imageTab === 'url' ? '#FFFFFF' : '#6E5D53',
+                          fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <LinkIcon size={14} /> Direct URL
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Tab 1: Upload File */}
+                  {imageTab === 'upload' && (
+                    <div>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileSelect}
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                      />
+                      <div
+                        onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                        onDrop={handleDrop}
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{
+                          border: '2px dashed #CBD5E1',
+                          borderRadius: '12px',
+                          padding: '28px 20px',
+                          textAlign: 'center',
+                          cursor: 'pointer',
+                          background: '#F8FAFC',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        {isUploadingImage ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: '#35251B' }}>
+                            <Loader2 size={32} className="animate-spin" />
+                            <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>Saving image to dashboard assets folder...</span>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                            <div style={{
+                              width: '46px', height: '46px', borderRadius: '50%',
+                              background: 'rgba(200, 155, 106, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              color: '#C89B6A',
+                            }}>
+                              <UploadCloud size={24} />
+                            </div>
+                            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#35251B' }}>
+                              Click to upload or drag &amp; drop product image
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: '#6E5D53' }}>
+                              PNG, JPG, WEBP, SVG up to 10MB • Saved directly to dashboard assets folder
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tab 2: Assets Folder Presets */}
+                  {imageTab === 'preset' && (
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#6E5D53', marginBottom: '8px' }}>
+                        Choose an authentic roastery image saved in <code style={{ color: '#35251B', fontWeight: 700 }}>assets/products</code>:
+                      </div>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                        gap: '8px',
+                        maxHeight: '160px',
+                        overflowY: 'auto',
+                        padding: '4px',
+                      }}>
+                        {PRESET_IMAGES.map(img => {
+                          const isSelected = form.imageUrl === img.url;
+                          return (
+                            <div
+                              key={img.label}
+                              onClick={() => setForm({ ...form, imageUrl: img.url })}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '6px 8px',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                border: `1px solid ${isSelected ? '#35251B' : '#E8DFD8'}`,
+                                background: isSelected ? '#FAF7F2' : '#FFFFFF',
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              <img
+                                src={img.url}
+                                alt={img.label}
+                                style={{ width: '28px', height: '28px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }}
+                                onError={e => { e.currentTarget.src = '/logo-circle.png'; }}
+                              />
+                              <span style={{
+                                fontSize: '0.75rem',
+                                fontWeight: isSelected ? 700 : 500,
+                                color: isSelected ? '#35251B' : '#5C4D43',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                flex: 1,
+                              }}>
+                                {img.label}
+                              </span>
+                              {isSelected && <Check size={14} color="#C89B6A" style={{ flexShrink: 0 }} />}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tab 3: Direct URL */}
+                  {imageTab === 'url' && (
+                    <div>
+                      <input
+                        type="text"
+                        value={form.imageUrl}
+                        onChange={e => setForm({ ...form, imageUrl: e.target.value })}
+                        placeholder="e.g. /assets/products/my-image.jpg or https://..."
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          border: '1px solid #CBD5E1',
+                          background: '#FFFFFF',
+                          color: '#35251B',
+                          fontSize: '0.9rem',
+                          fontWeight: 500,
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                      <div style={{ fontSize: '0.72rem', color: '#6E5D53', marginTop: '4px' }}>
+                        Can be a relative assets path (e.g. /assets/products/item.jpg) or full web URL.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Selected Preview */}
+                  {form.imageUrl && (
+                    <div style={{
+                      marginTop: '12px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      background: '#FAF7F2',
+                      border: '1px solid #E8DFD8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                        <img
+                          src={form.imageUrl}
+                          alt="Selected Preview"
+                          style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid #CBD5E1' }}
+                          onError={e => { e.currentTarget.src = '/logo-circle.png'; }}
+                        />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#35251B' }}>
+                            Selected Image Path:
+                          </div>
+                          <div style={{
+                            fontSize: '0.74rem',
+                            color: '#C89B6A',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            fontFamily: 'monospace',
+                            fontWeight: 700,
+                          }}>
+                            {form.imageUrl}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, imageUrl: '' })}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          background: '#FEE2E2',
+                          color: '#DC2626',
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                        }}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Additional Details (Tag & Availability) */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '18px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#0F172A', marginBottom: '6px' }}>
+                      Highlight Tag (Optional)
+                    </label>
+                    <select
+                      value={form.tag}
+                      onChange={e => setForm({ ...form, tag: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid #CBD5E1',
+                        background: '#FFFFFF',
+                        color: '#0F172A',
+                        fontSize: '0.88rem',
+                        fontWeight: 500,
+                        outline: 'none',
+                      }}
+                    >
+                      <option value="">None</option>
+                      <option value="bestseller">Bestseller</option>
+                      <option value="signature">Signature</option>
+                      <option value="popular">Popular</option>
+                      <option value="traditional">Traditional</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '26px' }}>
+                    <input
+                      type="checkbox"
+                      id="isAvail"
+                      checked={form.isAvailable}
+                      onChange={e => setForm({ ...form, isAvailable: e.target.checked })}
+                      style={{ width: '18px', height: '18px', accentColor: '#35251B', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="isAvail" style={{ fontSize: '0.88rem', color: '#35251B', cursor: 'pointer', fontWeight: 600 }}>
+                      Available in Store (Active)
+                    </label>
+                  </div>
+                </div>
+
+                {/* Optional Descriptions */}
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#35251B', marginBottom: '6px' }}>
+                    Description (EN)
                   </label>
+                  <textarea
+                    rows={2}
+                    value={form.description}
+                    onChange={e => setForm({ ...form, description: e.target.value })}
+                    placeholder="Handcrafted chocolates with velvety smooth ganache..."
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #CBD5E1',
+                      background: '#FFFFFF',
+                      color: '#35251B',
+                      fontSize: '0.88rem',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#35251B', marginBottom: '6px', textAlign: 'right', fontFamily: 'var(--font-arabic)' }}>
+                    الوصف (باللغة العربية)
+                  </label>
+                  <textarea
+                    rows={2}
+                    dir="rtl"
+                    value={form.descriptionAr}
+                    onChange={e => setForm({ ...form, descriptionAr: e.target.value })}
+                    placeholder="وصف المنتج باللغة العربية..."
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #CBD5E1',
+                      background: '#FFFFFF',
+                      color: '#35251B',
+                      fontSize: '0.88rem',
+                      fontFamily: 'var(--font-arabic)',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
                 </div>
               </div>
 
-              {/* Descriptions */}
-              <div>
-                <label style={labelStyle}>English Description</label>
-                <textarea rows={2} value={form.description}
-                  onChange={e => setForm({ ...form, description: e.target.value })}
-                  placeholder="Handcrafted chocolates with velvety smooth ganache..."
-                  style={{ ...inputStyle, resize: 'vertical' }} />
-              </div>
-              <div>
-                <label style={labelStyle}>Arabic Description</label>
-                <textarea rows={2} dir="rtl" value={form.descriptionAr}
-                  onChange={e => setForm({ ...form, descriptionAr: e.target.value })}
-                  placeholder="وصف المنتج باللغة العربية..."
-                  style={{ ...inputStyle, fontFamily: 'var(--font-arabic)', resize: 'vertical' }} />
-              </div>
-
-              {/* Submit row */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingTop: '4px' }}>
-                <button type="button" onClick={() => setIsModalOpen(false)}
+              {/* Modal Footer with #35251B */}
+              <div style={{
+                padding: '16px 28px',
+                background: '#FFFFFF',
+                borderTop: '1px solid #E8DFD8',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <button
+                  type="button"
+                  onClick={handleReset}
                   style={{
-                    padding: '10px 22px', borderRadius: '9999px', border: 'none', cursor: 'pointer',
-                    background: t.cancelBtn.bg, color: t.cancelBtn.color, fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '9px 20px',
+                    borderRadius: '8px',
+                    border: '1px solid #CBD5E1',
+                    background: '#FFFFFF',
+                    color: '#35251B',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'background 0.15s ease',
                   }}
-                >Cancel</button>
-                <button type="submit" disabled={isSaving}
-                  style={{
-                    padding: '10px 28px', borderRadius: '9999px', border: 'none', cursor: 'pointer',
-                    background: 'linear-gradient(135deg,#C89B6A,#A87747)',
-                    color: '#1B120C', fontWeight: 700, fontSize: '0.9rem',
-                    opacity: isSaving ? 0.7 : 1,
-                    boxShadow: '0 4px 14px rgba(200,155,106,0.3)',
-                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#FAF7F2'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
                 >
-                  {isSaving ? 'Saving...' : (editingProduct ? 'Update Product' : 'Save to Database')}
+                  <RotateCcw size={15} /> Reset
                 </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    style={{
+                      padding: '9px 24px',
+                      borderRadius: '8px',
+                      border: '1px solid #CBD5E1',
+                      background: '#FFFFFF',
+                      color: '#35251B',
+                      fontSize: '0.88rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'background 0.15s ease',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#FAF7F2'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '9px 24px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(200, 155, 106, 0.4)',
+                      background: '#35251B',
+                      color: '#FFFFFF',
+                      fontSize: '0.88rem',
+                      fontWeight: 700,
+                      cursor: isSaving ? 'not-allowed' : 'pointer',
+                      opacity: isSaving ? 0.7 : 1,
+                      boxShadow: '0 3px 10px rgba(53, 37, 27, 0.35)',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#443023'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#35251B'}
+                  >
+                    <Save size={16} color="#C89B6A" />
+                    {isSaving ? 'Saving...' : 'Save Product'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

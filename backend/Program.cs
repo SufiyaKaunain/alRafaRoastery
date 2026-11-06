@@ -122,11 +122,42 @@ using (var scope = app.Services.CreateScope())
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         db.Database.Migrate();
 
-        // Ensure PostgreSQL identity sequences match seeded data
+        // Ensure PostgreSQL identity sequences match seeded data and required columns exist
         db.Database.ExecuteSqlRaw(@"
             DO $$
             BEGIN
                 IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Products') THEN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Products' AND column_name = 'WeightPrices') THEN
+                        ALTER TABLE ""Products"" ADD COLUMN ""WeightPrices"" VARCHAR(8000) DEFAULT '';
+                    ELSE
+                        ALTER TABLE ""Products"" ALTER COLUMN ""WeightPrices"" TYPE VARCHAR(8000);
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Products' AND column_name = 'ProdVarients_Pricing') THEN
+                        ALTER TABLE ""Products"" ADD COLUMN ""ProdVarients_Pricing"" VARCHAR(8000) DEFAULT '';
+                    ELSE
+                        ALTER TABLE ""Products"" ALTER COLUMN ""ProdVarients_Pricing"" TYPE VARCHAR(8000);
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Products' AND column_name = 'ProdImg') THEN
+                        ALTER TABLE ""Products"" ADD COLUMN ""ProdImg"" VARCHAR(2000) DEFAULT '';
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Products' AND column_name = 'Highlight') THEN
+                        ALTER TABLE ""Products"" ADD COLUMN ""Highlight"" VARCHAR(100) DEFAULT '';
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Products' AND column_name = 'OriginalPrice') THEN
+                        ALTER TABLE ""Products"" ADD COLUMN ""OriginalPrice"" NUMERIC(18,2) NULL;
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Products' AND column_name = 'StockQuantity') THEN
+                        ALTER TABLE ""Products"" ADD COLUMN ""StockQuantity"" INTEGER DEFAULT 0;
+                    END IF;
+
+                    -- Sync existing fields between legacy and newly requested property names
+                    UPDATE ""Products"" SET ""ProdVarients_Pricing"" = ""WeightPrices"" WHERE (""ProdVarients_Pricing"" IS NULL OR ""ProdVarients_Pricing"" = '') AND (""WeightPrices"" IS NOT NULL AND ""WeightPrices"" <> '');
+                    UPDATE ""Products"" SET ""WeightPrices"" = ""ProdVarients_Pricing"" WHERE (""WeightPrices"" IS NULL OR ""WeightPrices"" = '') AND (""ProdVarients_Pricing"" IS NOT NULL AND ""ProdVarients_Pricing"" <> '');
+                    UPDATE ""Products"" SET ""ProdImg"" = ""ImageUrl"" WHERE (""ProdImg"" IS NULL OR ""ProdImg"" = '') AND (""ImageUrl"" IS NOT NULL AND ""ImageUrl"" <> '');
+                    UPDATE ""Products"" SET ""ImageUrl"" = ""ProdImg"" WHERE (""ImageUrl"" IS NULL OR ""ImageUrl"" = '') AND (""ProdImg"" IS NOT NULL AND ""ProdImg"" <> '');
+                    UPDATE ""Products"" SET ""Highlight"" = ""Tag"" WHERE (""Highlight"" IS NULL OR ""Highlight"" = '') AND (""Tag"" IS NOT NULL AND ""Tag"" <> '');
+                    UPDATE ""Products"" SET ""Tag"" = ""Highlight"" WHERE (""Tag"" IS NULL OR ""Tag"" = '') AND (""Highlight"" IS NOT NULL AND ""Highlight"" <> '');
+
                     PERFORM setval(
                         pg_get_serial_sequence('""Products""', 'Id'),
                         COALESCE((SELECT MAX(""Id"") FROM ""Products""), 1),

@@ -46,11 +46,16 @@ public class ProductsController : ControllerBase
             "price-asc" => query.OrderBy(p => p.Price),
             "price-desc" => query.OrderByDescending(p => p.Price),
             "newest" => query.OrderByDescending(p => p.CreatedAt),
-            _ => query.OrderByDescending(p => p.Tag == "bestseller" || p.Tag == "popular")
+            _ => query.OrderByDescending(p => p.Tag == "bestseller" || p.Tag == "popular" || p.Highlight == "bestseller" || p.Highlight == "popular")
                       .ThenByDescending(p => p.CreatedAt)
         };
 
-        return await query.ToListAsync();
+        var list = await query.ToListAsync();
+        foreach (var p in list)
+        {
+            p.NormalizeFields();
+        }
+        return list;
     }
 
     // GET: api/products/categories
@@ -79,6 +84,7 @@ public class ProductsController : ControllerBase
         if (product == null)
             return NotFound();
 
+        product.NormalizeFields();
         return product;
     }
 
@@ -154,12 +160,14 @@ public class ProductsController : ControllerBase
         try
         {
             product.Id = 0;
+            product.NormalizeFields();
             product.CreatedAt = DateTime.UtcNow;
             product.UpdatedAt = DateTime.UtcNow;
 
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
 
+            product.NormalizeFields();
             return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
         }
         catch (DbUpdateException ex)
@@ -170,6 +178,7 @@ public class ProductsController : ControllerBase
                 await _context.Database.ExecuteSqlRawAsync(@"
                     SELECT setval(pg_get_serial_sequence('""Products""', 'Id'), COALESCE((SELECT MAX(""Id"") FROM ""Products""), 1), true);
                 ");
+                product.NormalizeFields();
                 await _context.SaveChangesAsync();
                 return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
             }
@@ -189,24 +198,35 @@ public class ProductsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateProduct(int id, Product product)
     {
+        if (product.Id == 0) product.Id = id;
         if (id != product.Id)
-            return BadRequest();
+            return BadRequest(new { message = "Product ID mismatch." });
 
         var existing = await _context.Products.FindAsync(id);
         if (existing == null)
-            return NotFound();
+            return NotFound(new { message = $"Product #{id} not found." });
 
-        existing.Name = product.Name;
-        existing.NameAr = product.NameAr;
-        existing.Description = product.Description;
-        existing.DescriptionAr = product.DescriptionAr;
+        product.NormalizeFields();
+
+        existing.Name = product.Name?.Trim() ?? string.Empty;
+        existing.NameAr = product.NameAr?.Trim() ?? string.Empty;
+        existing.Description = product.Description?.Trim() ?? string.Empty;
+        existing.DescriptionAr = product.DescriptionAr?.Trim() ?? string.Empty;
+        existing.Category = product.Category?.Trim() ?? string.Empty;
         existing.Price = product.Price;
-        existing.Category = product.Category;
-        existing.ImageUrl = product.ImageUrl;
-        existing.Weight = product.Weight;
-        existing.Tag = product.Tag;
+        existing.OriginalPrice = product.OriginalPrice;
+        existing.StockQuantity = product.StockQuantity;
+        existing.Weight = product.Weight ?? string.Empty;
+        existing.ProdVarients_Pricing = product.ProdVarients_Pricing ?? string.Empty;
+        existing.WeightPrices = product.WeightPrices ?? string.Empty;
+        existing.ProdImg = product.ProdImg ?? string.Empty;
+        existing.ImageUrl = product.ImageUrl ?? string.Empty;
+        existing.Highlight = product.Highlight ?? string.Empty;
+        existing.Tag = product.Tag ?? string.Empty;
         existing.IsAvailable = product.IsAvailable;
         existing.UpdatedAt = DateTime.UtcNow;
+
+        existing.NormalizeFields();
 
         await _context.SaveChangesAsync();
 

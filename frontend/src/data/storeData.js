@@ -88,6 +88,22 @@ export const SLIDERS = [
 
 export const FEATURED_FALLBACK_PRODUCTS = [
   {
+    id: 100,
+    name: "Luxury Belgian Chocolates – Assorted Truffles & Pralines",
+    nameAr: "شوكولاتة بلجيكية فاخرة – تشكيلة تروفل وبرالين",
+    price: 35.00,
+    category: "Premium Chocolates",
+    categorySlug: "premium-chocolates",
+    imageUrl: "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/category/fbf2e333-806c-4031-abe7-56e7b85c12e8/md.webp",
+    weight: "250g, 500g, 1kg",
+    weightPrices: JSON.stringify([
+      { weight: "250g", price: 35.00 },
+      { weight: "500g", price: 65.00 },
+      { weight: "1kg", price: 120.00 }
+    ]),
+    isAvailable: true,
+  },
+  {
     id: 101,
     name: "Premium Raw Chile Walnuts – Fresh & Naturally Rich",
     nameAr: "عين جمل شيلي نيء فاخر – طازج وغني",
@@ -96,6 +112,11 @@ export const FEATURED_FALLBACK_PRODUCTS = [
     categorySlug: "premium-nuts-dry-fruits",
     imageUrl: "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/product/179f6430-bb6a-4342-8009-9245bc9072b4/md.webp",
     weight: "250g, 500g, 1kg",
+    weightPrices: JSON.stringify([
+      { weight: "250g", price: 16.50 },
+      { weight: "500g", price: 31.00 },
+      { weight: "1kg", price: 58.00 }
+    ]),
     isAvailable: true,
   },
   {
@@ -107,6 +128,11 @@ export const FEATURED_FALLBACK_PRODUCTS = [
     categorySlug: "premium-nuts-dry-fruits",
     imageUrl: "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/product/28e67c2a-351e-4125-9bed-334e253919cc/md.webp",
     weight: "250g, 500g, 1kg",
+    weightPrices: JSON.stringify([
+      { weight: "250g", price: 17.25 },
+      { weight: "500g", price: 33.00 },
+      { weight: "1kg", price: 62.00 }
+    ]),
     isAvailable: true,
   },
   {
@@ -118,6 +144,11 @@ export const FEATURED_FALLBACK_PRODUCTS = [
     categorySlug: "premium-nuts-dry-fruits",
     imageUrl: "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/product/585d93ba-f13a-49ff-a184-8f8d8a21687c/md.webp",
     weight: "250g, 500g, 1kg",
+    weightPrices: JSON.stringify([
+      { weight: "250g", price: 12.50 },
+      { weight: "500g", price: 23.50 },
+      { weight: "1kg", price: 44.00 }
+    ]),
     isAvailable: true,
   },
   {
@@ -129,6 +160,11 @@ export const FEATURED_FALLBACK_PRODUCTS = [
     categorySlug: "premium-nuts-dry-fruits",
     imageUrl: "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/product/ae299ba2-9318-473a-a2c1-ef8be84f6250/md.webp",
     weight: "250g, 500g, 1kg",
+    weightPrices: JSON.stringify([
+      { weight: "250g", price: 20.50 },
+      { weight: "500g", price: 39.00 },
+      { weight: "1kg", price: 74.00 }
+    ]),
     isAvailable: true,
   },
   {
@@ -140,6 +176,11 @@ export const FEATURED_FALLBACK_PRODUCTS = [
     categorySlug: "premium-nuts-dry-fruits",
     imageUrl: "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/product/058742ad-5b69-4563-9737-f7078b51fac4/md.webp",
     weight: "250g, 500g, 1kg",
+    weightPrices: JSON.stringify([
+      { weight: "250g", price: 12.00 },
+      { weight: "500g", price: 22.50 },
+      { weight: "1kg", price: 42.00 }
+    ]),
     isAvailable: true,
   },
   {
@@ -151,6 +192,11 @@ export const FEATURED_FALLBACK_PRODUCTS = [
     categorySlug: "premium-nuts-dry-fruits",
     imageUrl: "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/product/8210d982-94e9-47d0-b153-57b39b67c77c/md.webp",
     weight: "250g, 500g, 1kg",
+    weightPrices: JSON.stringify([
+      { weight: "250g", price: 17.25 },
+      { weight: "500g", price: 33.00 },
+      { weight: "1kg", price: 62.00 }
+    ]),
     isAvailable: true,
   },
   {
@@ -162,6 +208,11 @@ export const FEATURED_FALLBACK_PRODUCTS = [
     categorySlug: "premium-nuts-dry-fruits",
     imageUrl: "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/product/de1ae015-bc57-41e6-961d-c183850cd7f6/md.webp",
     weight: "250g, 500g, 1kg",
+    weightPrices: JSON.stringify([
+      { weight: "250g", price: 7.50 },
+      { weight: "500g", price: 14.00 },
+      { weight: "1kg", price: 26.00 }
+    ]),
     isAvailable: true,
   },
   {
@@ -173,6 +224,11 @@ export const FEATURED_FALLBACK_PRODUCTS = [
     categorySlug: "premium-nuts-dry-fruits",
     imageUrl: "https://d2ali9088mrhe3.cloudfront.net/stores/71f6a9e9-a144-4c34-9b52-59fba49ee5ec/product/49a53b00-0444-45d2-96fb-8a1283ef9e5c/md.webp",
     weight: "250g, 500g, 1kg",
+    weightPrices: JSON.stringify([
+      { weight: "250g", price: 7.50 },
+      { weight: "500g", price: 14.00 },
+      { weight: "1kg", price: 26.00 }
+    ]),
     isAvailable: true,
   },
 ];
