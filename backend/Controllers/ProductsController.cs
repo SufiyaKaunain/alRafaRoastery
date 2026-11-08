@@ -62,18 +62,37 @@ public class ProductsController : ControllerBase
     [HttpGet("categories")]
     public async Task<ActionResult<IEnumerable<object>>> GetCategories()
     {
-        var categories = await _context.Products
-            .Where(p => !string.IsNullOrEmpty(p.Category))
-            .GroupBy(p => p.Category)
-            .Select(g => new
-            {
-                name = g.Key,
-                count = g.Count()
-            })
-            .OrderBy(c => c.name)
+        var dbCategories = await _context.Categories
+            .OrderBy(c => c.category_name)
             .ToListAsync();
 
-        return Ok(categories);
+        var productCounts = await _context.Products
+            .Where(p => !string.IsNullOrEmpty(p.Category))
+            .GroupBy(p => p.Category)
+            .Select(g => new { Name = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Name, x => x.Count, StringComparer.OrdinalIgnoreCase);
+
+        if (dbCategories.Count > 0)
+        {
+            var result = dbCategories.Select(c => new
+            {
+                category_Id = c.category_Id,
+                category_name = c.category_name,
+                name = c.category_name,
+                count = productCounts.ContainsKey(c.category_name) ? productCounts[c.category_name] : 0
+            });
+            return Ok(result);
+        }
+
+        var fallback = productCounts.Select(kv => new
+        {
+            category_Id = 0,
+            category_name = kv.Key,
+            name = kv.Key,
+            count = kv.Value
+        }).OrderBy(c => c.name);
+
+        return Ok(fallback);
     }
 
     // GET: api/products/5
@@ -161,6 +180,19 @@ public class ProductsController : ControllerBase
         {
             product.Id = 0;
             product.NormalizeFields();
+
+            // Link category_Id if Category name is provided, or vice versa
+            if (product.category_Id.HasValue && string.IsNullOrWhiteSpace(product.Category))
+            {
+                var cat = await _context.Categories.FindAsync(product.category_Id.Value);
+                if (cat != null) product.Category = cat.category_name;
+            }
+            else if (!string.IsNullOrWhiteSpace(product.Category) && (!product.category_Id.HasValue || product.category_Id == 0))
+            {
+                var cat = await _context.Categories.FirstOrDefaultAsync(c => c.category_name.ToLower() == product.Category.Trim().ToLower());
+                if (cat != null) product.category_Id = cat.category_Id;
+            }
+
             product.CreatedAt = DateTime.UtcNow;
             product.UpdatedAt = DateTime.UtcNow;
 
@@ -213,6 +245,15 @@ public class ProductsController : ControllerBase
         existing.Description = product.Description?.Trim() ?? string.Empty;
         existing.DescriptionAr = product.DescriptionAr?.Trim() ?? string.Empty;
         existing.Category = product.Category?.Trim() ?? string.Empty;
+        if (product.category_Id.HasValue && product.category_Id.Value > 0)
+        {
+            existing.category_Id = product.category_Id.Value;
+        }
+        else if (!string.IsNullOrWhiteSpace(existing.Category))
+        {
+            var cat = await _context.Categories.FirstOrDefaultAsync(c => c.category_name.ToLower() == existing.Category.ToLower());
+            if (cat != null) existing.category_Id = cat.category_Id;
+        }
         existing.Price = product.Price;
         existing.OriginalPrice = product.OriginalPrice;
         existing.StockQuantity = product.StockQuantity;

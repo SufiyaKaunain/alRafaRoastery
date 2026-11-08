@@ -31,6 +31,18 @@ public class Product
     [MaxLength(100)]
     public string Category { get; set; } = string.Empty;
 
+    [Column("category_Id")]
+    [JsonPropertyName("category_Id")]
+    public int? category_Id { get; set; }
+
+    [NotMapped]
+    [JsonIgnore]
+    public int? Category_Id
+    {
+        get => category_Id;
+        set => category_Id = value;
+    }
+
     [MaxLength(2000)]
     public string ImageUrl { get; set; } = string.Empty;
 
@@ -47,6 +59,7 @@ public class Product
     public string ProdVarients_Pricing { get; set; } = string.Empty;
 
     [NotMapped]
+    [JsonIgnore]
     public string ProdVariants_Pricing
     {
         get => ProdVarients_Pricing;

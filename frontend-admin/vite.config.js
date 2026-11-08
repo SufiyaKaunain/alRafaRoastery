@@ -81,5 +81,12 @@ export default defineConfig({
   plugins: [react(), localUploadPlugin()],
   server: {
     port: 5174,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   }
 });

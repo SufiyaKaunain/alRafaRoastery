@@ -5,12 +5,16 @@ function getApiBase() {
     const clean = envUrl.trim().replace(/\/+$/, '');
     return clean.endsWith('/api') ? clean : `${clean}/api`;
   }
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:5000/api';
+  }
   return 'https://alrafaroastery.onrender.com/api';
 }
 
 const API_ROOT = getApiBase();
 const API_BASE = `${API_ROOT}/Products`;
 const AUTH_BASE = `${API_ROOT}/auth`;
+const CATEGORIES_BASE = `${API_ROOT}/categories`;
 
 // ─── Token Management ───────────────────────────────────────────────
 
@@ -231,34 +235,36 @@ export async function uploadProductImage(file) {
 
 export async function fetchProducts() {
   let backendProducts = [];
+  let backendOk = false;
   try {
     const response = await fetch(API_BASE);
     if (response.ok) {
       const data = await response.json();
       if (Array.isArray(data)) {
         backendProducts = data.map(normalizeProduct);
+        backendOk = true;
       }
     }
   } catch (err) {
     console.warn('API fetch warning, loading local sync cache:', err.message);
   }
 
-  const overrides = getStoredOverrides();
-  if (overrides.length === 0) {
+  if (backendOk) {
+    // Backend is active and reachable:
+    // Synchronize local storage cache so deleted products are never resurrected
+    try {
+      const backendIdSet = new Set(backendProducts.map(p => p.id));
+      const overrides = getStoredOverrides();
+      const validOverrides = overrides.filter(o => backendIdSet.has(o.id));
+      saveStoredOverrides(validOverrides);
+    } catch {}
+
     return backendProducts;
   }
 
-  // Merge: overrides replace matching backend products or prepend new ones
-  const merged = [...backendProducts];
-  for (const item of overrides) {
-    const idx = merged.findIndex(p => p.id === item.id);
-    if (idx !== -1) {
-      merged[idx] = item;
-    } else {
-      merged.unshift(item);
-    }
-  }
-  return merged;
+  // Fallback if backend is completely down:
+  const overrides = getStoredOverrides();
+  return overrides.length > 0 ? overrides : backendProducts;
 }
 
 export async function fetchProduct(id) {
@@ -384,5 +390,117 @@ export async function checkBackendStatus() {
     return res.ok;
   } catch {
     return false;
+  }
+}
+
+// ─── Categories API ──────────────────────────────────────────────────
+
+export async function fetchCategories() {
+  try {
+    const res = await fetch(CATEGORIES_BASE);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) return data;
+    }
+  } catch (err) {
+    console.warn('Categories fetch note:', err.message);
+  }
+
+  // Fallback authentic roastery categories
+  return [
+    { category_Id: 1, category_name: 'African Single Origin Roasts', category_nameAr: 'محامص إفريقية أحادية المصدر', name: 'African Single Origin Roasts' },
+    { category_Id: 2, category_name: 'Arabic & Gulf Heritage Roasts', category_nameAr: 'تحميص التراث العربي والخليجي', name: 'Arabic & Gulf Heritage Roasts' },
+    { category_Id: 3, category_name: 'Premium Arabic Sweets', category_nameAr: 'حلويات عربية فاخرة', name: 'Premium Arabic Sweets' },
+    { category_Id: 4, category_name: 'Premium Chocolates', category_nameAr: 'شوكولاتة بلجيكية فاخرة', name: 'Premium Chocolates' },
+    { category_Id: 5, category_name: 'Luxury Chocolates', category_nameAr: 'شوكولاتة فاخرة', name: 'Luxury Chocolates' },
+    { category_Id: 6, category_name: 'Premium Dates', category_nameAr: 'تمور فاخرة ومحشوة', name: 'Premium Dates' },
+    { category_Id: 7, category_name: 'Dates & Confections', category_nameAr: 'تمور وحلويات', name: 'Dates & Confections' },
+    { category_Id: 8, category_name: 'Premium Nuts & Dry Fruits', category_nameAr: 'مكسرات وفواكه مجففة فاخرة', name: 'Premium Nuts & Dry Fruits' },
+    { category_Id: 9, category_name: 'Premium Spices', category_nameAr: 'بهارات وتوابل فاخرة', name: 'Premium Spices' },
+    { category_Id: 10, category_name: 'Turkish Specialty Roasts', category_nameAr: 'قهوة تركية مختصة', name: 'Turkish Specialty Roasts' },
+    { category_Id: 11, category_name: 'Coffee Beans', category_nameAr: 'حبوب القهوة', name: 'Coffee Beans' },
+    { category_Id: 12, category_name: 'Specialty Drinks', category_nameAr: 'مشروبات مختصة', name: 'Specialty Drinks' },
+  ];
+}
+
+export async function createCategory(categoryData) {
+  const res = await fetch(CATEGORIES_BASE, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(categoryData),
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    let msg = res.statusText;
+    try { msg = JSON.parse(errorText).message || errorText; } catch {}
+    throw new Error(msg);
+  }
+  return await res.json();
+}
+
+export async function updateCategory(id, categoryData) {
+  const res = await fetch(`${CATEGORIES_BASE}/${id}`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify({ ...categoryData, category_Id: id }),
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    let msg = res.statusText;
+    try { msg = JSON.parse(errorText).message || errorText; } catch {}
+    throw new Error(msg);
+  }
+  return await res.json();
+}
+
+export async function deleteCategory(id, deleteProducts = false, categoryName = '') {
+  const url = deleteProducts
+    ? `${CATEGORIES_BASE}/${id}?deleteProducts=true`
+    : `${CATEGORIES_BASE}/${id}`;
+
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    let msg = res.statusText;
+    try { msg = JSON.parse(errorText).message || errorText; } catch {}
+    throw new Error(msg);
+  }
+
+  // Purge products from local storage overrides cache
+  try {
+    const overrides = getStoredOverrides();
+    const idNum = Number(id);
+    const catNameLower = String(categoryName || '').trim().toLowerCase();
+
+    const cleaned = overrides.filter(p => {
+      if (deleteProducts) {
+        const pCatId = Number(p.category_Id || p.Category_Id);
+        const pCatName = String(p.category || p.Category || '').trim().toLowerCase();
+        if (pCatId === idNum || (catNameLower && pCatName === catNameLower)) {
+          return false; // remove
+        }
+      } else {
+        const pCatId = Number(p.category_Id || p.Category_Id);
+        const pCatName = String(p.category || p.Category || '').trim().toLowerCase();
+        if (pCatId === idNum || (catNameLower && pCatName === catNameLower)) {
+          p.category_Id = null;
+          p.Category = '';
+          p.category = '';
+        }
+      }
+      return true;
+    });
+    saveStoredOverrides(cleaned);
+  } catch (err) {
+    console.warn('Error updating local storage cache after deleteCategory:', err);
+  }
+
+  try {
+    return await res.json();
+  } catch {
+    return true;
   }
 }

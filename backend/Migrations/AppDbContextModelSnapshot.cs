@@ -22,6 +22,40 @@ namespace AlRafaApi.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("AlRafaApi.Models.Category", b =>
+                {
+                    b.Property<int>("category_Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("category_Id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("category_Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("category_name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("category_name");
+
+                    b.Property<string>("category_nameAr")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("category_nameAr");
+
+                    b.HasKey("category_Id");
+
+                    b.HasIndex("category_name")
+                        .IsUnique();
+
+                    b.ToTable("Categories", (string)null);
+                });
+
             modelBuilder.Entity("AlRafaApi.Models.Product", b =>
                 {
                     b.Property<int>("Id")
@@ -111,6 +145,10 @@ namespace AlRafaApi.Migrations
                         .IsRequired()
                         .HasMaxLength(8000)
                         .HasColumnType("character varying(8000)");
+
+                    b.Property<int?>("category_Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("category_Id");
 
                     b.HasKey("Id");
 

@@ -5,6 +5,9 @@ function getApiBase() {
     const clean = envUrl.trim().replace(/\/+$/, '');
     return clean.endsWith('/api') ? clean : `${clean}/api`;
   }
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:5000/api';
+  }
   return 'https://alrafaroastery.onrender.com/api';
 }
 
@@ -82,33 +85,33 @@ function getStoredOverrides() {
 
 export async function fetchProducts() {
   let backendProducts = [];
+  let backendOk = false;
   try {
     const response = await fetch(API_BASE);
     if (response.ok) {
       const data = await response.json();
       if (Array.isArray(data)) {
         backendProducts = data.map(normalizeProduct);
+        backendOk = true;
       }
     }
   } catch (err) {
     console.warn('API products fetch warning, loading local sync cache:', err.message);
   }
 
-  const overrides = getStoredOverrides();
-  if (overrides.length === 0) {
+  if (backendOk) {
+    try {
+      const backendIdSet = new Set(backendProducts.map(p => p.id));
+      const overrides = getStoredOverrides();
+      const validOverrides = overrides.filter(o => backendIdSet.has(o.id));
+      localStorage.setItem('alrafa_products_override', JSON.stringify(validOverrides));
+    } catch {}
+
     return backendProducts;
   }
 
-  const merged = [...backendProducts];
-  for (const item of overrides) {
-    const idx = merged.findIndex(p => p.id === item.id);
-    if (idx !== -1) {
-      merged[idx] = item;
-    } else {
-      merged.unshift(item);
-    }
-  }
-  return merged;
+  const overrides = getStoredOverrides();
+  return overrides.length > 0 ? overrides : backendProducts;
 }
 
 export async function fetchProduct(id) {
@@ -134,4 +137,33 @@ export async function checkBackendStatus() {
   } catch {
     return false;
   }
+}
+
+const CATEGORIES_BASE = `${API_ROOT}/categories`;
+
+export async function fetchCategories() {
+  try {
+    const res = await fetch(CATEGORIES_BASE);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) return data;
+    }
+  } catch (err) {
+    console.warn('Customer categories fetch note:', err.message);
+  }
+
+  return [
+    { category_Id: 1, category_name: 'African Single Origin Roasts', category_nameAr: 'محامص إفريقية أحادية المصدر', name: 'African Single Origin Roasts' },
+    { category_Id: 2, category_name: 'Arabic & Gulf Heritage Roasts', category_nameAr: 'تحميص التراث العربي والخليجي', name: 'Arabic & Gulf Heritage Roasts' },
+    { category_Id: 3, category_name: 'Premium Arabic Sweets', category_nameAr: 'حلويات عربية فاخرة', name: 'Premium Arabic Sweets' },
+    { category_Id: 4, category_name: 'Premium Chocolates', category_nameAr: 'شوكولاتة بلجيكية فاخرة', name: 'Premium Chocolates' },
+    { category_Id: 5, category_name: 'Luxury Chocolates', category_nameAr: 'شوكولاتة فاخرة', name: 'Luxury Chocolates' },
+    { category_Id: 6, category_name: 'Premium Dates', category_nameAr: 'تمور فاخرة ومحشوة', name: 'Premium Dates' },
+    { category_Id: 7, category_name: 'Dates & Confections', category_nameAr: 'تمور وحلويات', name: 'Dates & Confections' },
+    { category_Id: 8, category_name: 'Premium Nuts & Dry Fruits', category_nameAr: 'مكسرات وفواكه مجففة فاخرة', name: 'Premium Nuts & Dry Fruits' },
+    { category_Id: 9, category_name: 'Premium Spices', category_nameAr: 'بهارات وتوابل فاخرة', name: 'Premium Spices' },
+    { category_Id: 10, category_name: 'Turkish Specialty Roasts', category_nameAr: 'قهوة تركية مختصة', name: 'Turkish Specialty Roasts' },
+    { category_Id: 11, category_name: 'Coffee Beans', category_nameAr: 'حبوب القهوة', name: 'Coffee Beans' },
+    { category_Id: 12, category_name: 'Specialty Drinks', category_nameAr: 'مشروبات مختصة', name: 'Specialty Drinks' },
+  ];
 }

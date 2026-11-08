@@ -8,11 +8,23 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<Category> Categories => Set<Category>();
     public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Category>(entity =>
+        {
+            entity.ToTable("Categories");
+            entity.HasKey(e => e.category_Id);
+            entity.Property(e => e.category_Id).HasColumnName("category_Id").ValueGeneratedOnAdd();
+            entity.Property(e => e.category_name).HasColumnName("category_name").IsRequired().HasMaxLength(150);
+            entity.Property(e => e.category_nameAr).HasColumnName("category_nameAr").HasMaxLength(150);
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("NOW()");
+            entity.HasIndex(e => e.category_name).IsUnique();
+        });
 
         modelBuilder.Entity<Product>(entity =>
         {

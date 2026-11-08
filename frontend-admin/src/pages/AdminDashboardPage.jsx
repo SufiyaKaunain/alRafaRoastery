@@ -5,6 +5,7 @@ import {
   fetchProducts, checkBackendStatus
 } from '../api';
 import AdminDashboard from '../components/AdminDashboard';
+import CategoriesManager from '../components/CategoriesManager';
 import Toast from '../components/Toast';
 import {
   LogOut, ExternalLink, Coffee, Database, User,
@@ -16,11 +17,12 @@ import {
 const NAV_ITEMS = [
   { key: 'home', label: 'Home', icon: LayoutDashboard },
   { key: 'products', label: 'Products', icon: Package },
+  { key: 'categories', label: 'Categories', icon: Tag },
   { key: 'profile', label: 'Profile', icon: User },
 ];
 
 /* ─── Home Tab ──────────────────────────────────────────── */
-function HomeTab({ products, onGoToProducts }) {
+function HomeTab({ products, onGoToProducts, onGoToCategories }) {
   const total = products.length;
   const available = products.filter(p => p.isAvailable).length;
   const categories = new Set(products.map(p => p.category)).size;
@@ -29,9 +31,9 @@ function HomeTab({ products, onGoToProducts }) {
     : '0';
 
   const stats = [
-    { label: 'Total Products', value: total, color: '#C89B6A', bg: '#FFF8F0', icon: Package },
-    { label: 'Available in Stock', value: available, color: '#16a34a', bg: '#F0FDF4', icon: ShoppingBag },
-    { label: 'Categories', value: categories, color: '#2563eb', bg: '#EFF6FF', icon: Tag },
+    { label: 'Total Products', value: total, color: '#C89B6A', bg: '#FFF8F0', icon: Package, onClick: onGoToProducts },
+    { label: 'Available in Stock', value: available, color: '#16a34a', bg: '#F0FDF4', icon: ShoppingBag, onClick: onGoToProducts },
+    { label: 'Categories', value: categories, color: '#2563eb', bg: '#EFF6FF', icon: Tag, onClick: onGoToCategories },
     { label: 'Avg. Price (AED)', value: `${avgPrice}`, color: '#7c3aed', bg: '#F5F3FF', icon: TrendingUp },
   ];
 
@@ -56,17 +58,35 @@ function HomeTab({ products, onGoToProducts }) {
         gap: '20px',
         marginBottom: '36px',
       }}>
-        {stats.map(({ label, value, color, bg, icon: Icon }) => (
-          <div key={label} style={{
-            background: '#fff',
-            borderRadius: '16px',
-            padding: '24px',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
-            border: '1px solid #f0f0f0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-          }}>
+        {stats.map(({ label, value, color, bg, icon: Icon, onClick }) => (
+          <div
+            key={label}
+            onClick={onClick}
+            style={{
+              background: '#fff',
+              borderRadius: '16px',
+              padding: '24px',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
+              border: '1px solid #f0f0f0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              cursor: onClick ? 'pointer' : 'default',
+              transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              if (onClick) {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.08)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (onClick) {
+                e.currentTarget.style.transform = 'none';
+                e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.07)';
+              }
+            }}
+          >
             <div style={{
               width: '48px', height: '48px', borderRadius: '12px',
               background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -152,25 +172,42 @@ function HomeTab({ products, onGoToProducts }) {
         }}>
           <div>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#111', marginBottom: '8px' }}>
-              Product Management
+              Catalog & Categories Management
             </h3>
             <p style={{ color: '#6b7280', fontSize: '0.88rem', lineHeight: 1.6, marginBottom: '20px' }}>
-              Easily add new specialty roasts, chocolates, or artisanal nuts, modify pricing, update descriptions, and toggle stock availability in real time.
+              Easily manage specialty roasts, chocolates, nuts, or add and edit product categories with real-time PostgreSQL database synchronization.
             </p>
           </div>
-          <button
-            onClick={onGoToProducts}
-            style={{
-              background: 'linear-gradient(135deg, #C89B6A, #A87747)',
-              color: '#1B120C', fontWeight: 700, border: 'none',
-              padding: '12px 20px', borderRadius: '10px', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-              fontSize: '0.92rem',
-            }}
-          >
-            <Package size={18} />
-            Manage Products
-          </button>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+            <button
+              onClick={onGoToProducts}
+              style={{
+                flex: 1, minWidth: '140px',
+                background: 'linear-gradient(135deg, #C89B6A, #A87747)',
+                color: '#1B120C', fontWeight: 700, border: 'none',
+                padding: '11px 16px', borderRadius: '10px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                fontSize: '0.88rem',
+              }}
+            >
+              <Package size={17} />
+              Products
+            </button>
+            <button
+              onClick={onGoToCategories}
+              style={{
+                flex: 1, minWidth: '140px',
+                background: '#35251B',
+                color: '#F7F1E8', fontWeight: 700, border: '1px solid #35251B',
+                padding: '11px 16px', borderRadius: '10px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                fontSize: '0.88rem',
+              }}
+            >
+              <Tag size={17} color="#C89B6A" />
+              Categories
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -548,6 +585,7 @@ export default function AdminDashboardPage() {
             <HomeTab
               products={products}
               onGoToProducts={() => setActiveTab('products')}
+              onGoToCategories={() => setActiveTab('categories')}
             />
           )}
           {activeTab === 'products' && (
@@ -558,6 +596,11 @@ export default function AdminDashboardPage() {
               showToast={showToast}
               dbConnected={dbConnected}
               lightMode
+            />
+          )}
+          {activeTab === 'categories' && (
+            <CategoriesManager
+              onCategoriesChanged={loadData}
             />
           )}
           {activeTab === 'profile' && (

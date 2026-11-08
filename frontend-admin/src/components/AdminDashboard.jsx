@@ -1,10 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Plus, Edit, Trash2, Search, RefreshCw, Upload, Image as ImageIcon, Check, Loader2,
   Link as LinkIcon, Folder, Package, X, Tag, CheckCircle2, RotateCcw, Save, Edit3,
   Info, UploadCloud
 } from 'lucide-react';
-import { createProduct, updateProduct, deleteProduct, uploadProductImage } from '../api';
+import { createProduct, updateProduct, deleteProduct, uploadProductImage, fetchCategories } from '../api';
 
 const PRESET_IMAGES = [
   { label: 'Spanish Latte', url: '/assets/products/spanish-latte.jpg' },
@@ -79,6 +79,21 @@ function useTheme(lightMode) {
   };
 }
 
+const getCategoryEmoji = (name = '') => {
+  const n = String(name).toLowerCase();
+  if (n.includes('chocolate')) return '🍫';
+  if (n.includes('nut')) return '🥜';
+  if (n.includes('arabic') || n.includes('gulf')) return '☕';
+  if (n.includes('african') || n.includes('origin')) return '🌍';
+  if (n.includes('turkish')) return '🇹🇷';
+  if (n.includes('date')) return '🌴';
+  if (n.includes('sweet') || n.includes('baklava')) return '🍬';
+  if (n.includes('spice') || n.includes('saffron')) return '🌿';
+  if (n.includes('bean')) return '🫘';
+  if (n.includes('drink') || n.includes('latte') || n.includes('coffee')) return '☕';
+  return '🏷️';
+};
+
 export default function AdminDashboard({
   products,
   onRefresh,
@@ -95,7 +110,16 @@ export default function AdminDashboard({
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageTab, setImageTab] = useState('upload'); // 'upload' | 'preset' | 'url'
+  const [categoriesList, setCategoriesList] = useState([]);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    fetchCategories().then(cats => {
+      if (Array.isArray(cats) && cats.length > 0) {
+        setCategoriesList(cats);
+      }
+    }).catch(() => {});
+  }, []);
 
   // Helper to parse weight variants from a product
   const parseWeightVariantsFromProduct = (p) => {
@@ -168,7 +192,7 @@ export default function AdminDashboard({
 
   const initialForm = {
     name: '', nameAr: '', description: '', descriptionAr: '',
-    price: '35', category: 'Premium Chocolates', weight: '250g, 500g, 1kg',
+    price: '35', category: 'Premium Chocolates', category_Id: 4, weight: '250g, 500g, 1kg',
     imageUrl: PRESET_IMAGES[0].url, tag: '', isAvailable: true,
   };
   const [form, setForm] = useState(initialForm);
@@ -211,7 +235,11 @@ export default function AdminDashboard({
     }
   };
 
-  const categories = ['ALL', ...new Set(products.map(p => p.category).filter(Boolean))];
+  const allCategoryNames = [
+    ...categoriesList.map(c => c.category_name || c.name).filter(Boolean),
+    ...products.map(p => p.category).filter(Boolean)
+  ];
+  const categories = ['ALL', ...new Set(allCategoryNames)];
   const filteredProducts = products.filter(p => {
     const s = searchTerm.toLowerCase();
     const matchSearch = p.name.toLowerCase().includes(s) ||
@@ -220,26 +248,61 @@ export default function AdminDashboard({
     return matchSearch && (selectedCategory === 'ALL' || p.category === selectedCategory);
   });
 
-  const openAddModal = () => {
+  const openAddModal = async () => {
     setEditingProduct(null);
-    setForm(initialForm);
+    let cats = categoriesList;
+    try {
+      const dbCats = await fetchCategories();
+      if (Array.isArray(dbCats) && dbCats.length > 0) {
+        setCategoriesList(dbCats);
+        cats = dbCats;
+      }
+    } catch {}
+
+    const firstCat = cats[0]?.category_name || cats[0]?.name || 'Premium Chocolates';
+    const firstCatId = cats[0]?.category_Id || cats[0]?.id || 4;
+
+    setForm({
+      ...initialForm,
+      category: firstCat,
+      category_Id: firstCatId,
+    });
     setWeightVariants(initialWeightVariants);
     setIsModalOpen(true);
   };
 
-  const openEditModal = (p) => {
+  const openEditModal = async (p) => {
     setEditingProduct(p);
     const parsedVariants = parseWeightVariantsFromProduct(p);
     setWeightVariants(parsedVariants);
     const imageVal = p.prodImg || p.ProdImg || p.imageUrl || p.ImageUrl || '';
     const highlightVal = p.highlight || p.Highlight || p.tag || p.Tag || '';
+
+    let cats = categoriesList;
+    try {
+      const dbCats = await fetchCategories();
+      if (Array.isArray(dbCats) && dbCats.length > 0) {
+        setCategoriesList(dbCats);
+        cats = dbCats;
+      }
+    } catch {}
+
+    const matchedCat = cats.find(c =>
+      (p.category_Id && (c.category_Id === p.category_Id || c.id === p.category_Id)) ||
+      (p.category && (c.category_name?.toLowerCase() === p.category.toLowerCase() || c.name?.toLowerCase() === p.category.toLowerCase()))
+    );
+
+    const activeCatName = matchedCat ? (matchedCat.category_name || matchedCat.name) : (p.category || p.Category || 'Premium Chocolates');
+    const activeCatId = matchedCat ? (matchedCat.category_Id || matchedCat.id) : (p.category_Id || p.Category_Id || null);
+
     setForm({
       name: p.name || p.Name || '',
       nameAr: p.nameAr || p.NameAr || '',
       description: p.description || p.Description || '',
       descriptionAr: p.descriptionAr || p.DescriptionAr || '',
       price: parsedVariants[0]?.sellingPrice || parsedVariants[0]?.price || p.price || p.Price || '',
-      category: p.category || p.Category || 'Premium Chocolates',
+      category: activeCatName,
+      category_Id: activeCatId,
       weight: p.weight || p.Weight || parsedVariants.map(v => v.size || v.weight).join(', '),
       imageUrl: imageVal,
       tag: highlightVal,
@@ -370,9 +433,11 @@ export default function AdminDashboard({
         nameAr: form.nameAr.trim(),
         NameAr: form.nameAr.trim(),
 
-        // Category
+        // Category & Category_Id
         category: form.category.trim(),
         Category: form.category.trim(),
+        category_Id: form.category_Id || null,
+        Category_Id: form.category_Id || null,
 
         // ProdVarients_Pricing
         prodVarients_Pricing: variantsJson,
@@ -856,21 +921,46 @@ export default function AdminDashboard({
 
                 {/* Category */}
                 <div style={{ marginBottom: '22px' }}>
-                  <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>
-                    Category <span style={{ color: '#EF4444' }}>*</span>
-                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <label style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0F172A' }}>
+                      Category <span style={{ color: '#EF4444' }}>*</span>
+                    </label>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      color: '#059669',
+                      background: '#ECFDF5',
+                      padding: '2px 8px',
+                      borderRadius: '9999px',
+                      border: '1px solid #A7F3D0',
+                    }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }}></span>
+                      Live DB Categories ({categoriesList.length || 0})
+                    </span>
+                  </div>
                   <div style={{ position: 'relative' }}>
                     <select
                       value={form.category}
-                      onChange={e => setForm({ ...form, category: e.target.value })}
+                      onChange={e => {
+                        const val = e.target.value;
+                        const matched = categoriesList.find(c => (c.category_name || c.name) === val);
+                        setForm({
+                          ...form,
+                          category: val,
+                          category_Id: matched ? (matched.category_Id || matched.id) : form.category_Id,
+                        });
+                      }}
                       style={{
                         width: '100%',
-                        padding: '10px 14px',
+                        padding: '11px 40px 11px 14px',
                         borderRadius: '8px',
                         border: '1px solid #CBD5E1',
                         background: '#FFFFFF',
                         color: '#0F172A',
-                        fontSize: '0.9rem',
+                        fontSize: '0.92rem',
                         fontWeight: 600,
                         outline: 'none',
                         appearance: 'none',
@@ -878,14 +968,33 @@ export default function AdminDashboard({
                         boxSizing: 'border-box',
                       }}
                     >
-                      <option value="Premium Chocolates">🍫  Premium Chocolates</option>
-                      <option value="Premium Nuts & Dry Fruits">🥜  Premium Nuts &amp; Dry Fruits</option>
-                      <option value="Arabic & Gulf Heritage Roasts">☕  Arabic &amp; Gulf Heritage Roasts</option>
-                      <option value="African Single Origin Roasts">🌍  African Single Origin Roasts</option>
-                      <option value="Turkish Specialty Roasts">🇹🇷  Turkish Specialty Roasts</option>
-                      <option value="Premium Dates">🌴  Premium Dates</option>
-                      <option value="Premium Arabic Sweets">🍬  Premium Arabic Sweets</option>
-                      <option value="Premium Spices">🌿  Premium Spices</option>
+                      {categoriesList.length > 0 ? (
+                        categoriesList.map(c => {
+                          const catName = c.category_name || c.name;
+                          const catAr = c.category_nameAr ? ` (${c.category_nameAr})` : '';
+                          return (
+                            <option key={c.category_Id || catName} value={catName}>
+                              {getCategoryEmoji(catName)}  {catName}{catAr}
+                            </option>
+                          );
+                        })
+                      ) : (
+                        <>
+                          <option value="Premium Chocolates">🍫  Premium Chocolates</option>
+                          <option value="Premium Nuts & Dry Fruits">🥜  Premium Nuts &amp; Dry Fruits</option>
+                          <option value="Arabic & Gulf Heritage Roasts">☕  Arabic &amp; Gulf Heritage Roasts</option>
+                          <option value="African Single Origin Roasts">🌍  African Single Origin Roasts</option>
+                          <option value="Turkish Specialty Roasts">🇹🇷  Turkish Specialty Roasts</option>
+                          <option value="Premium Dates">🌴  Premium Dates</option>
+                          <option value="Premium Arabic Sweets">🍬  Premium Arabic Sweets</option>
+                          <option value="Premium Spices">🌿  Premium Spices</option>
+                        </>
+                      )}
+                      {form.category && !categoriesList.some(c => (c.category_name || c.name) === form.category) && (
+                        <option value={form.category}>
+                          {getCategoryEmoji(form.category)}  {form.category} (Current)
+                        </option>
+                      )}
                     </select>
                     <div style={{
                       position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
